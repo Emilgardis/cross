@@ -127,7 +127,7 @@ impl CrossToml {
     /// The `build` fields ([`CrossBuildConfig`]) are merged based on their sub-fields.
     /// A field in the [`CrossBuildConfig`] will only overwrite another if it contains
     /// a value, i.e. it is not `None`.
-    pub fn merge(&self, other: &CrossToml) -> Result<CrossToml> {
+    pub fn merge(self, other: CrossToml) -> Result<CrossToml> {
         type ValueMap = serde_json::Map<String, serde_json::Value>;
 
         fn to_map<S: Serialize>(s: S) -> Result<ValueMap> {
@@ -736,7 +736,7 @@ mod tests {
             },
         };
 
-        let cfg_merged = cfg1.merge(&cfg2).unwrap();
+        let cfg_merged = cfg1.merge(cfg2).unwrap();
         assert_eq!(cfg_expected, cfg_merged);
 
         Ok(())
