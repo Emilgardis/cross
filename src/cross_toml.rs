@@ -2,19 +2,20 @@
 
 use crate::{config, errors::*};
 use crate::{Target, TargetList};
-use serde::{Deserialize, Deserializer};
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeSet, HashMap};
 use std::str::FromStr;
 
 /// Environment configuration
-#[derive(Debug, Deserialize, PartialEq, Eq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct CrossEnvConfig {
     volumes: Option<Vec<String>>,
     passthrough: Option<Vec<String>>,
 }
 
 /// Build configuration
-#[derive(Debug, Deserialize, PartialEq, Eq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "kebab-case")]
 pub struct CrossBuildConfig {
     #[serde(default)]
@@ -28,7 +29,7 @@ pub struct CrossBuildConfig {
 }
 
 /// Target configuration
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct CrossTargetConfig {
     xargo: Option<bool>,
@@ -43,7 +44,7 @@ pub struct CrossTargetConfig {
 }
 
 /// Dockerfile configuration
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub struct CrossTargetDockerfileConfig {
     file: String,
@@ -64,7 +65,7 @@ impl FromStr for CrossTargetDockerfileConfig {
 }
 
 /// Cross configuration
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct CrossToml {
     #[serde(default, rename = "target")]
     pub targets: HashMap<Target, CrossTargetConfig>,
@@ -113,6 +114,52 @@ impl CrossToml {
         }
 
         Ok((cfg, unused))
+    }
+
+    /// Merges another [`CrossToml`] into `self` and returns a new merged one
+    ///
+    /// # Merging of `targets`
+    /// The `targets` entries are merged based on the [`Target`] keys.
+    /// If a [`Target`] key is present in both configs, the [`CrossTargetConfig`]
+    /// in `other` overwrites the one in `self`.
+    ///
+    /// # Merging of `build`
+    /// The `build` fields ([`CrossBuildConfig`]) are merged based on their sub-fields.
+    /// A field in the [`CrossBuildConfig`] will only overwrite another if it contains
+    /// a value, i.e. it is not `None`.
+    pub fn merge(&self, other: &CrossToml) -> Result<CrossToml> {
+        type ValueMap = serde_json::Map<String, serde_json::Value>;
+
+        fn to_map<S: Serialize>(s: S) -> Result<ValueMap> {
+            if let Some(obj) = serde_json::to_value(s)?.as_object() {
+                Ok(obj.to_owned())
+            } else {
+                panic!("Failed to serialize CrossToml as object");
+            }
+        }
+
+        fn from_map<D: DeserializeOwned>(map: ValueMap) -> Result<D> {
+            let value = serde_json::to_value(map)?;
+            Ok(serde_json::from_value(value)?)
+        }
+
+        // Merges both target maps
+        let mut self_targets_map = to_map(&self.targets)?;
+        let other_targets_map = to_map(&other.targets)?;
+        self_targets_map.extend(other_targets_map);
+        let merged_targets = from_map(self_targets_map)?;
+
+        // Merges build configs
+        let mut self_build_cfg_map = to_map(&self.build)?;
+        let mut other_build_cfg_map = to_map(&other.build)?;
+        other_build_cfg_map.retain(|_, v| !v.is_null());
+        self_build_cfg_map.extend(other_build_cfg_map);
+        let merged_build_cfg = from_map(self_build_cfg_map)?;
+
+        Ok(CrossToml {
+            targets: merged_targets,
+            build: merged_build_cfg,
+        })
     }
 
     /// Returns the `target.{}.image` part of `Cross.toml`
@@ -279,6 +326,20 @@ where
             let t: Result<T, _> =
                 Deserialize::deserialize(de::value::MapAccessDeserializer::new(map));
             t.map(Some)
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
         }
     }
 
@@ -496,6 +557,187 @@ mod tests {
         } else {
             panic!("Parsing result is None");
         }
+
+        Ok(())
+    }
+
+    #[test]
+    pub fn merge() -> Result<()> {
+        let mut targets1 = HashMap::new();
+        targets1.insert(
+            Target::BuiltIn {
+                triple: "aarch64-unknown-linux-gnu".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR1".to_string()]),
+                    volumes: Some(vec!["VOL1_ARG".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(true),
+                image: Some("test-image1".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+        targets1.insert(
+            Target::Custom {
+                triple: "target2".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR2".to_string()]),
+                    volumes: Some(vec!["VOL2_ARG".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(true),
+                image: Some("test-image2".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+
+        let mut targets2 = HashMap::new();
+        targets2.insert(
+            Target::Custom {
+                triple: "target2".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR2_PRECEDENCE".to_string()]),
+                    volumes: Some(vec!["VOL2_ARG_PRECEDENCE".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(false),
+                image: Some("test-image2-precedence".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+        targets2.insert(
+            Target::Custom {
+                triple: "target3".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR3".to_string()]),
+                    volumes: Some(vec!["VOL3_ARG".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(true),
+                image: Some("test-image3".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+
+        // Defines the base config
+        let cfg1 = CrossToml {
+            targets: targets1,
+            build: CrossBuildConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR1".to_string(), "VAR2".to_string()]),
+                    volumes: Some(vec![]),
+                },
+                build_std: Some(true),
+                xargo: Some(true),
+                default_target: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        };
+
+        // Defines the config that is to be merged into cfg1
+        let cfg2 = CrossToml {
+            targets: targets2,
+            build: CrossBuildConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR3".to_string(), "VAR4".to_string()]),
+                    volumes: Some(vec![]),
+                },
+                build_std: None,
+                xargo: Some(false),
+                default_target: Some("aarch64-unknown-linux-gnu".to_string()),
+                pre_build: None,
+                dockerfile: None,
+            },
+        };
+
+        // Defines the expected targets after the merge
+        let mut targets_expected = HashMap::new();
+        targets_expected.insert(
+            Target::BuiltIn {
+                triple: "aarch64-unknown-linux-gnu".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR1".to_string()]),
+                    volumes: Some(vec!["VOL1_ARG".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(true),
+                image: Some("test-image1".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+        targets_expected.insert(
+            Target::Custom {
+                triple: "target2".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR2_PRECEDENCE".to_string()]),
+                    volumes: Some(vec!["VOL2_ARG_PRECEDENCE".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(false),
+                image: Some("test-image2-precedence".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+        targets_expected.insert(
+            Target::Custom {
+                triple: "target3".to_string(),
+            },
+            CrossTargetConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR3".to_string()]),
+                    volumes: Some(vec!["VOL3_ARG".to_string()]),
+                },
+                xargo: Some(false),
+                build_std: Some(true),
+                image: Some("test-image3".to_string()),
+                runner: None,
+                pre_build: None,
+                dockerfile: None,
+            },
+        );
+
+        let cfg_expected = CrossToml {
+            targets: targets_expected,
+            build: CrossBuildConfig {
+                env: CrossEnvConfig {
+                    passthrough: Some(vec!["VAR3".to_string(), "VAR4".to_string()]),
+                    volumes: Some(vec![]),
+                },
+                build_std: Some(true),
+                xargo: Some(false),
+                default_target: Some("aarch64-unknown-linux-gnu".to_string()),
+                pre_build: None,
+                dockerfile: None,
+            },
+        };
+
+        let cfg_merged = cfg1.merge(&cfg2).unwrap();
+        assert_eq!(cfg_expected, cfg_merged);
 
         Ok(())
     }
