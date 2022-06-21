@@ -73,12 +73,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Internal
 
+- Change rust edition to 2021 and bump MSRV for the cross binary to 1.60.0
 - #828 - assume paths are Unicode and provide better error messages for path encoding errors.
 - #787 - add installer for git hooks.
 - #786, #791 - Migrate build script to rust: `cargo build-docker-image $TARGET`
 - #730 - make FreeBSD builds more resilient.
 - #670 - Use serde for deserialization of Cross.toml
-- Change rust edition to 2021 and bump MSRV for the cross binary to 1.58.1
 - #654 - Use color-eyre for error reporting
 - #658 - Upgrade dependencies
 - #652 - Allow trying individual targets via bors.
