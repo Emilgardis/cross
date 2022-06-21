@@ -610,33 +610,24 @@ fn toml(metadata: &CargoMetadata) -> Result<Option<CrossToml>> {
     // Attempts to read the cross config from the Cargo.toml
     let cargo_toml_str =
         file::read(root.join("Cargo.toml")).wrap_err("failed to read Cargo.toml")?;
-    let cargo_cross_toml_opt = CrossToml::parse_from_cargo(&cargo_toml_str)?;
 
-    match (
-        cross_config_path.exists(),
-        cargo_cross_toml_opt.map(|(cfg, _)| cfg),
-    ) {
-        (true, cargo_cross_cfg) => {
-            let content = file::read(&cross_config_path)
-                .wrap_err_with(|| format!("could not read file `{cross_config_path:?}`"))?;
+    if cross_config_path.exists() {
+        let cross_toml_str = file::read(&cross_config_path)
+            .wrap_err_with(|| format!("could not read file `{cross_config_path:?}`"))?;
 
-            let (config, _) = CrossToml::parse(&content).wrap_err_with(|| {
-                format!("failed to parse file `{cross_config_path:?}` as TOML")
-            })?;
+        let (config, _) = CrossToml::parse(&cargo_toml_str, &cross_toml_str)
+            .wrap_err_with(|| format!("failed to parse file `{cross_config_path:?}` as TOML",))?;
 
-            if let Some(cfg) = cargo_cross_cfg {
-                Ok(Some(cfg.merge(config)?))
-            } else {
-                Ok(Some(config))
-            }
+        Ok(Some(config))
+    } else {
+        // Checks if there is a lowercase version of this file
+        if root.join("cross.toml").exists() {
+            eprintln!("There's a file named cross.toml, instead of Cross.toml. You may want to rename it, or it won't be considered.");
         }
-        (false, Some(cfg)) => Ok(Some(cfg)),
-        (false, None) => {
-            // Checks if there is a lowercase version of this file
-            if root.join("cross.toml").exists() {
-                eprintln!("There's a file named cross.toml, instead of Cross.toml. You may want to rename it, or it won't be considered.");
-            }
 
+        if let Some((cfg, _)) = CrossToml::parse_from_cargo(&cargo_toml_str)? {
+            Ok(Some(cfg))
+        } else {
             Ok(None)
         }
     }

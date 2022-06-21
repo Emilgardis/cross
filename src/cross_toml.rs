@@ -74,8 +74,19 @@ pub struct CrossToml {
 }
 
 impl CrossToml {
+    /// Parses the [`CrossToml`] from all of the config sources
+    pub fn parse(cargo_toml: &str, cross_toml: &str) -> Result<(Self, BTreeSet<String>)> {
+        let (cross_toml, unused) = Self::parse_from_cross(cross_toml)?;
+
+        if let Some((cargo_toml, _)) = Self::parse_from_cargo(cargo_toml)? {
+            Ok((cargo_toml.merge(cross_toml)?, unused))
+        } else {
+            Ok((cross_toml, unused))
+        }
+    }
+
     /// Parses the [`CrossToml`] from a string
-    pub fn parse(toml_str: &str) -> Result<(Self, BTreeSet<String>)> {
+    pub fn parse_from_cross(toml_str: &str) -> Result<(Self, BTreeSet<String>)> {
         let mut tomld = toml::Deserializer::new(toml_str);
         Self::parse_from_deserializer(&mut tomld)
     }
@@ -143,30 +154,47 @@ impl CrossToml {
             Ok(serde_json::from_value(value)?)
         }
 
+        // merge 2 objects. y has precedence over x.
+        fn merge_objects(x: &mut ValueMap, y: &ValueMap) -> Option<()> {
+            // we need to iterate over both keys, so we need a full deduplication
+            let keys: BTreeSet<String> = x.keys().chain(y.keys()).cloned().collect();
+            for key in keys {
+                let in_x = x.contains_key(&key);
+                let in_y = y.contains_key(&key);
+                if !in_x && in_y {
+                    let yk = y[&key].clone();
+                    x.insert(key, yk);
+                    continue;
+                } else if !in_y {
+                    continue;
+                }
+
+                let xk = x.get_mut(&key)?;
+                let yk = y.get(&key)?;
+                if xk.is_null() && !yk.is_null() {
+                    *xk = yk.clone();
+                    continue;
+                } else if yk.is_null() {
+                    continue;
+                }
+
+                // now we've filtered out missing keys and optional values
+                // all key/value pairs should be same type.
+                if xk.is_object() {
+                    merge_objects(xk.as_object_mut()?, yk.as_object()?)?;
+                } else {
+                    *xk = yk.clone();
+                }
+            }
+
+            Some(())
+        }
+
         // Builds maps of objects
         let mut self_map = to_map(&self)?;
         let other_map = to_map(other)?;
-        let cfg_fields: Vec<String> = self_map.keys().cloned().collect();
 
-        // Iterates over and merges config fields
-        for field in cfg_fields.iter() {
-            let self_sub_map = self_map.get_mut(field).unwrap().as_object_mut().unwrap();
-            let mut other_sub_map = other_map
-                .get(field)
-                .cloned()
-                .unwrap()
-                .as_object_mut()
-                .unwrap()
-                .to_owned();
-
-            // Only retain fields in the build config that have a value
-            if field == "build" {
-                other_sub_map.retain(|_, v| !v.is_null());
-            }
-
-            self_sub_map.extend(other_sub_map);
-        }
-
+        merge_objects(&mut self_map, &other_map).unwrap();
         from_map(self_map)
     }
 
@@ -364,7 +392,7 @@ mod tests {
             targets: HashMap::new(),
             build: CrossBuildConfig::default(),
         };
-        let (parsed_cfg, unused) = CrossToml::parse("")?;
+        let (parsed_cfg, unused) = CrossToml::parse_from_cross("")?;
 
         assert_eq!(parsed_cfg, cfg);
         assert!(unused.is_empty());
@@ -398,7 +426,7 @@ mod tests {
           volumes = ["VOL1_ARG", "VOL2_ARG"]
           passthrough = ["VAR1", "VAR2"]
         "#;
-        let (parsed_cfg, unused) = CrossToml::parse(test_str)?;
+        let (parsed_cfg, unused) = CrossToml::parse_from_cross(test_str)?;
 
         assert_eq!(parsed_cfg, cfg);
         assert!(unused.is_empty());
@@ -442,7 +470,7 @@ mod tests {
             image = "test-image"
             pre-build = []
         "#;
-        let (parsed_cfg, unused) = CrossToml::parse(test_str)?;
+        let (parsed_cfg, unused) = CrossToml::parse_from_cross(test_str)?;
 
         assert_eq!(parsed_cfg, cfg);
         assert!(unused.is_empty());
@@ -506,7 +534,7 @@ mod tests {
             [target.aarch64-unknown-linux-gnu.env]
             volumes = ["VOL"]
         "#;
-        let (parsed_cfg, unused) = CrossToml::parse(test_str)?;
+        let (parsed_cfg, unused) = CrossToml::parse_from_cross(test_str)?;
 
         assert_eq!(parsed_cfg, cfg);
         assert!(unused.is_empty());
