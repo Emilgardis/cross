@@ -27,7 +27,8 @@ runs:
           ${{ runner.temp }}/artifacts
 
     - name: Log into crates.io
-      if: github.event_name != 'pull_request'
+      id: login-cratesio
+      if: github.event_name != 'pull_request' && inputs.cargo-registry-token != "DUMMY_TOKEN"
       uses: actions-rs/cargo@v1
       with:
         command: login
@@ -60,4 +61,4 @@ runs:
       uses: actions-rs/cargo@v1
       with:
         command: publish
-        args: ${{ !startsWith(github.ref, 'refs/tags/v') && '--dry-run' || '' }}
+        args: ${{ !startsWith(github.ref, 'refs/tags/v') && steps.login-cratesio.outcome == "success" && '--dry-run' || '' }}
