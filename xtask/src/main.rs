@@ -9,6 +9,7 @@ pub mod hooks;
 pub mod install_git_hooks;
 pub mod target_info;
 pub mod util;
+pub mod target_test;
 
 use ci::CiJob;
 use clap::{CommandFactory, Parser, Subcommand};
@@ -62,6 +63,8 @@ enum Commands {
     Check(Check),
     /// Run unittest suite.
     Test(Test),
+    /// Run integration tests for target
+    TargetTest(TargetTest),
     /// CI tasks
     #[clap(subcommand, hide = true)]
     CiJob(CiJob),
@@ -112,6 +115,9 @@ pub fn main() -> cross::Result<()> {
         }
         Commands::Test(args) => {
             hooks::test(args, cli.toolchain.as_deref(), &mut msg_info)?;
+        }
+        Commands::TargetTest(args) => {
+            target_test::test(args, cli.toolchain.as_deref(), &mut msg_info)?;
         }
         Commands::CiJob(args) => {
             let metadata = cargo_metadata(&mut Verbosity::Verbose(2).into())?;
