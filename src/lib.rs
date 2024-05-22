@@ -492,7 +492,13 @@ fn warn_on_failure(
 ) -> Result<()> {
     let rust_std = format!("rust-std-{target}");
     if target.is_builtin() {
-        let component = rustup::check_component(&rust_std, toolchain, msg_info)?;
+        let component =
+            if let Ok(component) = rustup::check_component(&rust_std, toolchain, msg_info) {
+                component
+            } else {
+                msg_info.warn("could not check rust-std component availability")?;
+                return Ok(());
+            };
         if component.is_not_available() {
             msg_info.warn(format_args!("rust-std is not available for {target}"))?;
             msg_info.note(
