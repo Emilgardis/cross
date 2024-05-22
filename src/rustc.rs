@@ -133,6 +133,9 @@ impl QualifiedToolchain {
         config: &crate::config::Config,
         msg_info: &mut MessageInfo,
     ) -> Result<QualifiedToolchain> {
+        let mut sysroot = sysroot.to_owned();
+        sysroot.set_file_name(&name);
+
         if let Some(compat) = config.custom_toolchain_compat() {
             let mut toolchain: QualifiedToolchain = QualifiedToolchain::parse(
                 sysroot.to_owned(),
@@ -145,6 +148,7 @@ impl QualifiedToolchain {
             )?;
             toolchain.is_custom = true;
             toolchain.full = name.to_owned();
+            toolchain.sysroot = sysroot;
             return Ok(toolchain);
         }
         // a toolchain installed by https://github.com/rust-lang/cargo-bisect-rustc
@@ -155,6 +159,7 @@ impl QualifiedToolchain {
                     .wrap_err("could not parse bisector toolchain")?;
             toolchain.is_custom = true;
             toolchain.full = name.to_owned();
+            toolchain.sysroot = sysroot;
             return Ok(toolchain);
         } else if let Ok(stdout) = Command::new(sysroot.join("bin/rustc"))
             .arg("-Vv")
@@ -175,10 +180,10 @@ impl QualifiedToolchain {
                 },
                 &build_date,
                 &ImagePlatform::from_target(host.into())?,
-                sysroot,
+                &sysroot,
                 true,
             );
-            toolchain.full = name.to_owned();
+            name.clone_into(&mut toolchain.full);
             return Ok(toolchain);
         }
         Err(eyre::eyre!(
