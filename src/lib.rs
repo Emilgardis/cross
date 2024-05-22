@@ -810,7 +810,7 @@ pub fn setup(
 To override the toolchain mounted in the image, set `target.{target}.image.toolchain = "{picked_host}"`"#).header("Note:".bright_cyan()));
         }
 
-        default_toolchain.with_picked(picked_toolchain)?
+        default_toolchain.with_picked(picked_toolchain, &config, msg_info)?
     } else {
         default_toolchain
     };

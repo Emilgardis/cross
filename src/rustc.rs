@@ -213,20 +213,28 @@ impl QualifiedToolchain {
     }
 
     /// Merge a "picked" toolchain, overriding set fields.
-    pub fn with_picked(self, picked: Toolchain) -> Result<Self> {
+    pub fn with_picked(
+        self,
+        picked: Toolchain,
+        config: &crate::config::Config,
+        msg_info: &mut MessageInfo,
+    ) -> Result<Self> {
         let date = picked.date.or(self.date);
         let host = picked
             .host
             .map_or(Ok(self.host), ImagePlatform::from_target)?;
         let channel = picked.channel;
-
-        Ok(QualifiedToolchain::new(
-            &channel,
-            &date,
-            &host,
-            &self.sysroot,
-            self.is_custom,
-        ))
+        if self.is_custom {
+            QualifiedToolchain::custom(&self.full, &self.sysroot, config, msg_info)
+        } else {
+            Ok(QualifiedToolchain::new(
+                &channel,
+                &date,
+                &host,
+                &self.sysroot,
+                self.is_custom,
+            ))
+        }
     }
 
     pub fn set_sysroot(&mut self, convert: impl Fn(&Path) -> PathBuf) {

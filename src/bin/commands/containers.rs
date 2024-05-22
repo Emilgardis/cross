@@ -75,9 +75,10 @@ impl CreateVolume {
         &self,
         engine: docker::Engine,
         channel: Option<&Toolchain>,
+        config: &cross::config::Config,
         msg_info: &mut MessageInfo,
     ) -> cross::Result<()> {
-        create_persistent_volume(self, &engine, channel, msg_info)
+        create_persistent_volume(self, &engine, channel, config, msg_info)
     }
 }
 
@@ -102,9 +103,10 @@ impl RemoveVolume {
         &self,
         engine: docker::Engine,
         channel: Option<&Toolchain>,
+        config: &cross::config::Config,
         msg_info: &mut MessageInfo,
     ) -> cross::Result<()> {
-        remove_persistent_volume(self, &engine, channel, msg_info)
+        remove_persistent_volume(self, &engine, channel, config, msg_info)
     }
 }
 
@@ -128,12 +130,19 @@ impl Volumes {
         channel: Option<&Toolchain>,
         msg_info: &mut MessageInfo,
     ) -> cross::Result<()> {
+        let config = if let Some(metadata) = cross::cargo_metadata_with_args(None, None, msg_info)?
+        {
+            let toml = cross::toml(&metadata, msg_info)?;
+            cross::config::Config::new(Some(toml))
+        } else {
+            cross::config::Config::new(None)
+        };
         match self {
             Volumes::List(args) => args.run(engine, msg_info),
             Volumes::RemoveAll(args) => args.run(engine, msg_info),
             Volumes::Prune(args) => args.run(engine, msg_info),
-            Volumes::Create(args) => args.run(engine, channel, msg_info),
-            Volumes::Remove(args) => args.run(engine, channel, msg_info),
+            Volumes::Create(args) => args.run(engine, channel, &config, msg_info),
+            Volumes::Remove(args) => args.run(engine, channel, &config, msg_info),
         }
     }
 
@@ -290,9 +299,10 @@ pub fn create_persistent_volume(
     }: &CreateVolume,
     engine: &docker::Engine,
     channel: Option<&Toolchain>,
+    config: &cross::config::Config,
     msg_info: &mut MessageInfo,
 ) -> cross::Result<()> {
-    let mut toolchain = toolchain_or_target(toolchain, msg_info)?;
+    let mut toolchain = toolchain_or_target(toolchain, config, msg_info)?;
     if let Some(channel) = channel {
         toolchain.channel = channel.channel.clone();
     };
@@ -358,9 +368,10 @@ pub fn remove_persistent_volume(
     RemoveVolume { toolchain, .. }: &RemoveVolume,
     engine: &docker::Engine,
     channel: Option<&Toolchain>,
+    config: &cross::config::Config,
     msg_info: &mut MessageInfo,
 ) -> cross::Result<()> {
-    let mut toolchain = toolchain_or_target(toolchain, msg_info)?;
+    let mut toolchain = toolchain_or_target(toolchain, config, msg_info)?;
     if let Some(channel) = channel {
         toolchain.channel = channel.channel.clone();
     };
@@ -457,16 +468,16 @@ pub fn remove_all_containers(
 
 fn toolchain_or_target(
     s: &str,
+    config: &cross::config::Config,
     msg_info: &mut MessageInfo,
 ) -> Result<QualifiedToolchain, color_eyre::Report> {
-    let config = cross::config::Config::new(None);
     let mut toolchain = QualifiedToolchain::default(&config, msg_info)?;
     let target_list = cross::rustc::target_list(msg_info)?;
     if target_list.contains(s) {
         toolchain.replace_host(&ImagePlatform::from_target(s.into())?);
     } else {
         let picked: Toolchain = s.parse()?;
-        toolchain = toolchain.with_picked(picked)?;
+        toolchain = toolchain.with_picked(picked, config, msg_info)?;
     }
 
     Ok(toolchain)
