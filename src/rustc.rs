@@ -225,7 +225,7 @@ impl QualifiedToolchain {
             &date,
             &host,
             &self.sysroot,
-            false,
+            self.is_custom,
         ))
     }
 
