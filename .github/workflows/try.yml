@@ -61,10 +61,12 @@ jobs:
           gh run view "$RUN_ID" --json jobs |
           jq -r -f .github/workflows/try.jq \
             --arg pr_id "$PR_ID" \
-            --arg comment "$COMMENT_URL" > "$RUNNER_TEMP/comment.md"
+            --arg comment "$COMMENT_URL" \
+            --arg try_error "$TRY_ERROR" > "$RUNNER_TEMP/comment.md"
           gh pr comment "$PR_ID" --body-file "$RUNNER_TEMP/comment.md"
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.run_id }}
           PR_ID: ${{ github.event.issue.number }}
           COMMENT_URL: ${{ github.event.comment.html_url }}
+          TRY_ERROR: ${{ needs.try.outputs.try-error }}

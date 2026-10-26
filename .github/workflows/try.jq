@@ -3,6 +3,7 @@
 # input: `gh run view --json jobs`
 # $pr_id: pr number
 # $comment: url to the try comment
+# $try_error: JSON with `error` and `help` if the command was invalid, otherwise empty
 def failed: .conclusion | IN("failure", "cancelled", "timed_out", "startup_failure");
 def box: .conclusion | if . == "success" then "✔️" elif . == "skipped" then "🛇" else "❌" end;
 def step_anchor(f): [.steps[] | select(f)] | first | if . then "#step:\(.number):1" else "" end;
@@ -27,6 +28,11 @@ def job_name:.name | ltrimstr("try / ") | (capture("^target \\((?<n>[^,]+),") | 
 "<!--try-conclusion-comment-->\n" +
 "## [Try](\($conclusion.url | sub("/job/.*"; ""))?pr=\($pr_id)) run for [comment](\($comment)) - \($conclusion | box)\n\n" +
 "[Matrix](\($matrix.url)?pr=\($pr_id)\($matrix | step_anchor(.name == "Generate matrix")))\n\n" +
+(if $try_error != "" then
+  ($try_error | fromjson) as $e |
+  "#### Invalid Command\n\n```\n\($e.error)\n```\n\n" +
+  "<details>\n<summary>Usage</summary>\n\n```\n\($e.help | rtrimstr("\n"))\n```\n\n</details>\n\n"
+else "" end) +
 (if $failed | length > 0 then
   "#### Failed Jobs (\($failed | length))\n\n" +
   ($failed | group_by(.step) | sort_by(-length) | map(

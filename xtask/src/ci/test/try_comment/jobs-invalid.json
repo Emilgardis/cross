@@ -1,0 +1,42 @@
+{
+  "jobs": [
+    {
+      "name": "acknowledge",
+      "conclusion": "success",
+      "databaseId": 100,
+      "url": "https://github.com/cross-rs/cross/actions/runs/2/job/100",
+      "steps": []
+    },
+    {
+      "name": "try / generate-matrix",
+      "conclusion": "failure",
+      "databaseId": 101,
+      "url": "https://github.com/cross-rs/cross/actions/runs/2/job/101",
+      "steps": [
+        { "name": "Set up job", "conclusion": "success", "number": 1 },
+        { "name": "Generate matrix", "conclusion": "failure", "number": 4 }
+      ]
+    },
+    {
+      "name": "try / clippy (ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 102,
+      "url": "https://github.com/cross-rs/cross/actions/runs/2/job/102",
+      "steps": [{ "name": "Run clippy", "conclusion": "success", "number": 4 }]
+    },
+    {
+      "name": "try / target (${{ matrix.pretty }},${{ matrix.os }})",
+      "conclusion": "skipped",
+      "databaseId": 104,
+      "url": "https://github.com/cross-rs/cross/actions/runs/2/job/104",
+      "steps": []
+    },
+    {
+      "name": "try / conclusion",
+      "conclusion": "failure",
+      "databaseId": 130,
+      "url": "https://github.com/cross-rs/cross/actions/runs/2/job/130",
+      "steps": [{ "name": "Result", "conclusion": "failure", "number": 2 }]
+    }
+  ]
+}

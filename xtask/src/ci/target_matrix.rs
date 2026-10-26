@@ -71,7 +71,8 @@ impl TargetMatrix {
                 subcommand: Some(TargetMatrixSub::Try { pr, comment }),
                 ..
             } => {
-                let process_try_comment = process_try_comment(comment)?;
+                let process_try_comment =
+                    process_try_comment(comment).inspect_err(report_try_error)?;
                 is_default_try = process_try_comment.0;
                 (vec![pr.as_ref()], process_try_comment.1)
             }
@@ -98,7 +99,28 @@ impl TargetMatrix {
             apply_ci_labels(&prs, &mut app)?
         }
 
+        let is_try = matches!(
+            self,
+            Self {
+                subcommand: Some(TargetMatrixSub::Try { .. }),
+                ..
+            }
+        );
+        // also on prs, where a misspelled `CI-` label would otherwise silently build nothing
+        app.ensure_targets_match(&matrix).inspect_err(|e| {
+            if is_try {
+                report_try_error(e)
+            }
+        })?;
+
         app.filter(&mut matrix);
+
+        if is_try && matrix.is_empty() && !app.none {
+            let err =
+                eyre::eyre!("no targets left after filtering, use `--none` to only run tests");
+            report_try_error(&err);
+            return Err(err);
+        }
 
         let matrix = matrix
             .iter()
@@ -225,6 +247,22 @@ fn current_pr() -> Option<String> {
     pr_info.get("number").map(|n| n.to_string())
 }
 
+pub(super) fn try_error(err: &eyre::Report) -> serde_json::Value {
+    use clap::CommandFactory;
+
+    serde_json::json!({
+        "error": format!("{err:#}"),
+        "help": TargetMatrixArgs::command().render_help().to_string(),
+    })
+}
+
+/// Outputs `try-error` so the try comment can show why the command failed.
+fn report_try_error(err: &eyre::Report) {
+    if let Err(e) = gha_output("try-error", &try_error(err).to_string()) {
+        eprintln!("failed to output try-error: {e}");
+    }
+}
+
 /// Returns the arguments of the first `/ci try` command in a comment.
 ///
 /// Keep in sync with the check in `.github/workflows/try.yml`.
@@ -257,6 +295,13 @@ fn process_try_comment(message: &str) -> cross::Result<(bool, TargetMatrixArgs)>
             TargetMatrixArgs::try_parse_from(shell_words::split(command)?)?,
         ))
     }
+}
+
+/// Matches a `--target` against a target, either exactly or as a glob
+fn target_matches(pattern: &str, target: &CiTarget) -> bool {
+    let image_target = target.to_image_target();
+    pattern.parse::<ImageTarget>().unwrap() == image_target
+        || wildmatch::WildMatch::new(pattern).matches(&image_target.to_string())
 }
 
 #[derive(Serialize)]
@@ -292,8 +337,9 @@ fn bool_negate(b: &bool) -> bool {
 }
 
 #[derive(Parser, Debug, PartialEq, Eq)]
-#[clap(no_binary_name = true)]
+#[clap(name = "/ci try", no_binary_name = true)]
 struct TargetMatrixArgs {
+    /// Filter targets to try. Checks exact name, name.sub, glob (`*-musl*`), and special images (`zig`, `cross`).
     #[clap(long, short, num_args = 0..)]
     target: Vec<String>,
     #[clap(long, value_parser = BoolishValueParser::new())]
@@ -304,16 +350,21 @@ struct TargetMatrixArgs {
     dylib: Option<bool>,
     #[clap(long, value_parser = BoolishValueParser::new())]
     run: Option<bool>,
+    /// Runners to filter targets by, match against the `runners` field in targets.toml. Does not limit which runners the tests actually use.
     #[clap(long, short, num_args = 0..)]
     runners: Vec<String>,
+    /// try no targets, only `--tests` jobs
     #[clap(long)]
     none: bool,
-    #[clap(long)]
+    #[clap(hide = true, long)]
     has_image: bool,
+    /// pass `-v` to `xtask build-docker-image`
     #[clap(long, short)]
     verbose: bool,
+    /// sets `CROSS_DEBUG=true`
     #[clap(long, short)]
     cross_debug: bool,
+    /// extra test jobs to run
     #[clap(long, value_parser = PossibleValuesParser::new(&[
             "remote",
             "bisect",
@@ -362,18 +413,7 @@ impl TargetMatrixArgs {
             matrix.retain(|t| t.to_image_target().has_ci_image());
         }
         if !self.target.is_empty() {
-            matrix.retain(|m| {
-                let matrix_target = m.to_image_target();
-                let matrix_string = matrix_target.to_string();
-
-                self.target
-                    .iter()
-                    .any(|t| t.parse::<ImageTarget>().unwrap() == matrix_target)
-                    || self
-                        .target
-                        .iter()
-                        .any(|t| wildmatch::WildMatch::new(t).matches(&matrix_string))
-            })
+            matrix.retain(|m| self.target.iter().any(|t| target_matches(t, m)))
         };
         if let Some(std) = self.std {
             matrix.retain(|m| m.std.unwrap_or_default() == std)
@@ -394,6 +434,22 @@ impl TargetMatrixArgs {
                     .any(|runner| m.runners.as_deref().unwrap_or_default().contains(runner))
             });
         }
+    }
+
+    /// Errors if any `--target` doesn't match a target in the matrix
+    fn ensure_targets_match(&self, matrix: &[CiTarget]) -> cross::Result<()> {
+        let unmatched: Vec<_> = self
+            .target
+            .iter()
+            .filter(|t| !matrix.iter().any(|m| target_matches(t, m)))
+            .map(|t| format!("`{t}`"))
+            .collect();
+        eyre::ensure!(
+            unmatched.is_empty(),
+            "no targets matched {}",
+            unmatched.join(", ")
+        );
+        Ok(())
     }
 
     fn tests(&self) -> Result<serde_json::Value, serde_json::Error> {
@@ -548,6 +604,30 @@ mod tests {
         assert!(process_try_comment("/ci try").unwrap().0);
         assert!(process_try_comment("/ci try --nope").is_err());
         assert!(process_try_comment("nothing here").is_err());
+    }
+
+    #[test]
+    fn ensure_targets_match() {
+        let mut matrix = get_matrix().clone();
+        matrix.retain(|t| !t.disabled);
+        let check = |args: &[&str]| {
+            TargetMatrixArgs::try_parse_from(args)
+                .unwrap()
+                .ensure_targets_match(&matrix)
+        };
+        assert!(
+            check(&[
+                "-t",
+                "*-musl*",
+                "-t",
+                "zig",
+                "-t",
+                "x86_64-unknown-linux-gnu.centos"
+            ])
+            .is_ok()
+        );
+        let err = check(&["-t", "*-musl*", "-t", "i686-linux", "-t", "nope*"]).unwrap_err();
+        assert_eq!(err.to_string(), "no targets matched `i686-linux`, `nope*`");
     }
 
     #[test]

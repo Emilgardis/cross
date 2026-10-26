@@ -13,6 +13,10 @@ on:
         required: false
         type: string
         description: Used to checkout a specific ref, instead of the default ref with `actions/checkout` action
+    outputs:
+      try-error:
+        description: JSON with `error` and `help` when the `/ci try` command was invalid
+        value: ${{ jobs.generate-matrix.outputs.try-error }}
   pull_request:
   merge_group:
   push:
@@ -118,6 +122,7 @@ jobs:
     outputs:
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
       tests: ${{ steps.generate-matrix.outputs.tests }}
+      try-error: ${{ steps.generate-matrix.outputs.try-error }}
     steps:
       - uses: actions/checkout@v3
         with:
