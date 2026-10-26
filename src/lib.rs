@@ -64,7 +64,7 @@ use self::errors::Context;
 use self::shell::{MessageInfo, Verbosity};
 
 pub use self::errors::{Result, install_panic_hook, install_termination_hook};
-pub use self::extensions::{CommandExt, OutputExt, SafeCommand};
+pub use self::extensions::{CommandExt, OutputExt, SafeCommand, Stream};
 pub use self::file::{ToUtf8, pretty_path};
 pub use self::rustc::{TargetList, VersionMetaExt};
 

@@ -14,7 +14,7 @@ use super::shared::*;
 use crate::TargetTriple;
 use crate::config::bool_from_envvar;
 use crate::errors::Result;
-use crate::extensions::CommandExt;
+use crate::extensions::{CommandExt, Stream};
 use crate::file::{self, PathExt, ToUtf8};
 use crate::rustc::{self, QualifiedToolchain, VersionMetaExt};
 use crate::shell::MessageInfo;
@@ -1153,7 +1153,9 @@ symlink_recurse \"${{prefix}}\"
     bail_container_exited!();
 
     let (status, command_stdout) =
-        docker.run_and_get_output_streamed(msg_info, |line| !is_cargo_json_message(line))?;
+        docker.run_and_get_output_streamed(msg_info, Stream::Stdout, |line| {
+            !is_cargo_json_message(line)
+        })?;
     // Per-artifact copies should land inside the host target directory
     // itself, e.g. <project>/target/<triple>/debug/<bin>.
     let host_target_dir = package_dirs.target().to_owned();

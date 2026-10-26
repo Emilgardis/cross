@@ -7,6 +7,13 @@ use crate::shell::MessageInfo;
 
 pub const STRIPPED_BINS: &[&str] = &[crate::docker::DOCKER, crate::docker::PODMAN, "cargo"];
 
+/// An output stream of a command.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Stream {
+    Stdout,
+    Stderr,
+}
+
 pub trait CommandExt {
     fn fmt_message(&self, msg_info: &mut MessageInfo) -> String;
 
@@ -50,6 +57,7 @@ pub trait CommandExt {
     fn run_and_get_output_streamed(
         &mut self,
         msg_info: &mut MessageInfo,
+        stream: Stream,
         should_forward: impl FnMut(&str) -> bool,
     ) -> Result<(ExitStatus, String)>;
     fn command_pretty(
@@ -198,9 +206,9 @@ impl CommandExt for Command {
         })
     }
 
-    /// Runs the command to completion, forwarding stdout line-by-line to the
-    /// real stdout (like `tee`) while collecting it for later parsing, and
-    /// streaming stderr as-is.
+    /// Runs the command to completion, forwarding `stream` line-by-line to the
+    /// real stream (like `tee`) while collecting it for later parsing, and
+    /// streaming the other stream as-is.
     ///
     /// Unlike [`CommandExt::run_and_get_output`], the captured output is also
     /// forwarded to the user, so programs' output is not swallowed. Lines for
@@ -211,24 +219,29 @@ impl CommandExt for Command {
     fn run_and_get_output_streamed(
         &mut self,
         msg_info: &mut MessageInfo,
+        stream: Stream,
         mut should_forward: impl FnMut(&str) -> bool,
     ) -> Result<(ExitStatus, String)> {
-        use std::io::{BufRead, Write};
+        use std::io::{BufRead, Read, Write};
 
         self.debug(msg_info)?;
 
-        let mut child = self
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .map_err(|e| CommandError::CouldNotExecute {
-                source: Box::new(e),
-                command: self
-                    .command_pretty(msg_info, |cmd| STRIPPED_BINS.iter().any(|f| f == &cmd)),
-            })?;
+        match stream {
+            Stream::Stdout => self.stdout(std::process::Stdio::piped()),
+            Stream::Stderr => self.stderr(std::process::Stdio::piped()),
+        };
+        let mut child = self.spawn().map_err(|e| CommandError::CouldNotExecute {
+            source: Box::new(e),
+            command: self.command_pretty(msg_info, |cmd| STRIPPED_BINS.iter().any(|f| f == &cmd)),
+        })?;
 
         let mut collected = String::new();
-        if let Some(stdout) = child.stdout.take() {
-            let mut reader = std::io::BufReader::new(stdout);
+        let output: Option<Box<dyn Read>> = match stream {
+            Stream::Stdout => child.stdout.take().map(|s| Box::new(s) as _),
+            Stream::Stderr => child.stderr.take().map(|s| Box::new(s) as _),
+        };
+        if let Some(output) = output {
+            let mut reader = std::io::BufReader::new(output);
             let mut line = String::new();
             loop {
                 line.clear();
@@ -237,10 +250,17 @@ impl CommandExt for Command {
                     Ok(0) => break,
                     Ok(_) => {
                         collected.push_str(&line);
-                        // Forward to the user's stdout, like `tee`. Ignore
+                        // Forward to the user's stdout or stderr, like `tee`. Ignore
                         // write errors, e.g. a broken pipe from `cross run | head`.
                         if should_forward(&line) {
-                            let _ = std::io::stdout().lock().write_all(line.as_bytes());
+                            let _ = match stream {
+                                Stream::Stdout => {
+                                    std::io::stdout().lock().write_all(line.as_bytes())
+                                }
+                                Stream::Stderr => {
+                                    std::io::stderr().lock().write_all(line.as_bytes())
+                                }
+                            };
                         }
                     }
                     Err(_) => break,
@@ -329,4 +349,51 @@ pub(crate) fn env_program(envvar: &str, program: &str) -> String {
     std::env::var(envvar)
         .ok()
         .unwrap_or_else(|| program.to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn missing_manifest() -> Command {
+        let mut command = Command::new("cargo");
+        command.args(["build", "--manifest-path", "does/not/exist/Cargo.toml"]);
+        // CI sets `CARGO_TERM_COLOR=always`
+        command.env("CARGO_TERM_COLOR", "never");
+        command
+    }
+
+    #[test]
+    fn streamed_stdout() {
+        let (status, stdout) = Command::new("cargo")
+            .arg("--version")
+            .run_and_get_output_streamed(&mut MessageInfo::default(), Stream::Stdout, |_| true)
+            .unwrap();
+        assert!(status.success());
+        assert!(stdout.starts_with("cargo "), "{stdout}");
+
+        // stderr isn't collected
+        let (status, stdout) = missing_manifest()
+            .run_and_get_output_streamed(&mut MessageInfo::default(), Stream::Stdout, |_| true)
+            .unwrap();
+        assert!(!status.success());
+        assert_eq!(stdout, "");
+    }
+
+    #[test]
+    fn streamed_stderr() {
+        let (status, stderr) = missing_manifest()
+            .run_and_get_output_streamed(&mut MessageInfo::default(), Stream::Stderr, |_| false)
+            .unwrap();
+        assert!(!status.success());
+        assert!(stderr.contains("error: manifest path"), "{stderr}");
+
+        // stdout isn't collected
+        let (status, stderr) = Command::new("cargo")
+            .arg("--version")
+            .run_and_get_output_streamed(&mut MessageInfo::default(), Stream::Stderr, |_| true)
+            .unwrap();
+        assert!(status.success());
+        assert_eq!(stderr, "");
+    }
 }

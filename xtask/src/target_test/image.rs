@@ -4,13 +4,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use cross::CommandExt;
 use cross::shell::MessageInfo;
+use cross::{CommandExt, Stream};
 
 use super::TargetTest;
 use crate::test_util::{
     COMPILER_BUILTINS, CORTEST, RUST_CMAKE_HELLO_WORLD, RUST_CPP_ACCUMULATE, RUST_CPP_HELLO_WORLD,
-    Steps, TEST_WORKSPACE, binary_path, build_cross, command, git_clone, image_var, tmp_dir,
+    Steps, TEST_WORKSPACE, binary_path, build_cross, command, git_clone, image_var, strip_ansi,
+    tmp_dir,
 };
 use crate::util::CiTarget;
 
@@ -66,10 +67,18 @@ impl Tester<'_> {
 
     /// `cross <subcommand>` once, without iterating runners
     fn cross(&mut self, dir: &Path, subcommand: &str, args: &[&str]) -> cross::Result<()> {
-        self.cross_command(dir, subcommand)
-            .args(args)
-            .args(&self.cross_flags)
-            .run(self.msg_info, false)
+        let mut cross = self.cross_command(dir, subcommand);
+        cross.args(args).args(&self.cross_flags);
+        let (status, stderr) =
+            cross.run_and_get_output_streamed(self.msg_info, Stream::Stderr, |_| true)?;
+        let lines: Vec<_> = stderr.lines().map(strip_ansi).collect();
+        let tail = lines[lines.len().saturating_sub(10)..].join("\n");
+        eyre::ensure!(
+            status.success(),
+            "`{}` failed with {status}\n{tail}",
+            cross.command_pretty(self.msg_info, |_| false)
+        );
+        Ok(())
     }
 
     fn cross_build(&mut self, dir: &Path, args: &[&str]) -> cross::Result<()> {

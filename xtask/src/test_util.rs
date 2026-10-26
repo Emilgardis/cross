@@ -86,22 +86,22 @@ pub trait Steps: Sized {
         f: impl FnOnce(&mut Self) -> cross::Result<()>,
     ) -> cross::Result<()> {
         let title = format!("{} {name}", self.title());
+        // on stderr, to stay in order with the output of commands
         if is_gha() {
-            println!("::group::{name}");
+            eprintln!("::group::{name}");
         } else {
             eprintln!("==> {name}");
         }
         let result = f(self);
         if is_gha() {
-            println!("::endgroup::");
-        }
-        if let Err(e) = &result {
-            if is_gha() {
-                println!(
+            match &result {
+                Ok(()) => eprintln!("::endgroup::"),
+                // the group is left open on error, so the error and the output before it are shown
+                Err(e) => eprintln!(
                     "::error title={}::{}",
                     gha_escape(&title, true),
                     gha_escape(&format!("{e:#}"), false)
-                );
+                ),
             }
         }
         result.map_err(|e| e.wrap_err(format!("step `{title}` failed")))
@@ -209,6 +209,21 @@ pub fn build_cross(
     build.run(msg_info, false)
 }
 
+/// Removes colors.
+pub fn strip_ansi(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut chars = line.chars();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            // CSI sequences end with a letter, e.g. `\x1b[1;31m`
+            chars.by_ref().find(|c| c.is_ascii_alphabetic());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 /// `CROSS_TARGET_<TARGET>_IMAGE`
 pub fn image_var(target: &str) -> String {
     format!(
@@ -220,4 +235,17 @@ pub fn image_var(target: &str) -> String {
 /// Container engine, `CROSS_CONTAINER_ENGINE` or docker, then podman.
 pub fn container_engine() -> cross::Result<PathBuf> {
     Ok(cross::docker::get_container_engine()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn strips_ansi() {
+        assert_eq!(
+            strip_ansi("\x1b[1m\x1b[91merror\x1b[0m\x1b[1m: linking failed\x1b[0m"),
+            "error: linking failed"
+        );
+    }
 }
