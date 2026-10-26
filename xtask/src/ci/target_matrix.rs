@@ -135,7 +135,7 @@ impl TargetMatrix {
                 build_std: target.build_std.map(|b| b as u8),
                 cpp: target.cpp.map(|b| b as u8),
                 dylib: target.dylib.map(|b| b as u8),
-                runners: target.runners.as_deref(),
+                runners: app.runners_for(target),
                 std: target.std.map(|b| b as u8),
                 verbose: app.verbose,
                 cross_debug: app.cross_debug,
@@ -324,7 +324,7 @@ struct TargetMatrixElement<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     dylib: Option<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    runners: Option<&'a str>,
+    runners: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     std: Option<u8>,
     verbose: bool,
@@ -350,7 +350,7 @@ struct TargetMatrixArgs {
     dylib: Option<bool>,
     #[clap(long, value_parser = BoolishValueParser::new())]
     run: Option<bool>,
-    /// Runners to filter targets by, match against the `runners` field in targets.toml. Does not limit which runners the tests actually use.
+    /// Runners to filter and limit targets by, match against the `runners` field in targets.toml.
     #[clap(long, short, num_args = 0..)]
     runners: Vec<String>,
     /// try no targets, only `--tests` jobs
@@ -428,12 +428,21 @@ impl TargetMatrixArgs {
             matrix.retain(|m| m.run.unwrap_or_default() == run)
         }
         if !self.runners.is_empty() {
-            matrix.retain(|m| {
-                self.runners
-                    .iter()
-                    .any(|runner| m.runners.as_deref().unwrap_or_default().contains(runner))
-            });
+            matrix.retain(|m| self.runners_for(m).is_some());
         }
+    }
+
+    /// Runners the tests should use for a target, limited to the ones matching `--runners`
+    fn runners_for(&self, target: &CiTarget) -> Option<String> {
+        let runners = target.runners.as_deref()?;
+        if self.runners.is_empty() {
+            return Some(runners.to_owned());
+        }
+        let runners = runners
+            .split_whitespace()
+            .filter(|runner| self.runners.iter().any(|r| runner.contains(r.as_str())))
+            .collect::<Vec<_>>();
+        (!runners.is_empty()).then(|| runners.join(" "))
     }
 
     /// Errors if any `--target` doesn't match a target in the matrix
@@ -628,6 +637,37 @@ mod tests {
         );
         let err = check(&["-t", "*-musl*", "-t", "i686-linux", "-t", "nope*"]).unwrap_err();
         assert_eq!(err.to_string(), "no targets matched `i686-linux`, `nope*`");
+    }
+
+    #[test]
+    fn runners() {
+        let target = get_matrix()
+            .iter()
+            .find(|t| t.target == "aarch64-unknown-linux-gnu" && t.sub.is_none())
+            .unwrap();
+        let runners_for = |args: &[&str]| {
+            TargetMatrixArgs::try_parse_from(args)
+                .unwrap()
+                .runners_for(target)
+        };
+        assert_eq!(runners_for(&[]).as_deref(), target.runners.as_deref());
+        assert_eq!(
+            runners_for(&["--runners", "qemu-user"]).as_deref(),
+            Some("qemu-user")
+        );
+        assert_eq!(
+            runners_for(&["--runners", "qemu"]).as_deref(),
+            Some("qemu-user qemu-system")
+        );
+        assert_eq!(runners_for(&["--runners", "nope"]), None);
+
+        let matrix = run(["--runners", "native"]);
+        assert!(!matrix.is_empty());
+        assert!(
+            matrix
+                .iter()
+                .all(|t| t.runners.as_deref().unwrap().contains("native"))
+        );
     }
 
     #[test]

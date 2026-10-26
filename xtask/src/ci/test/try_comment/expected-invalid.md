@@ -21,7 +21,7 @@ Options:
       --cpp <CPP>               [possible values: true, false]
       --dylib <DYLIB>           [possible values: true, false]
       --run <RUN>               [possible values: true, false]
-  -r, --runners [<RUNNERS>...]  Runners to filter targets by, match against the `runners` field in targets.toml. Does not limit which runners the tests actually use
+  -r, --runners [<RUNNERS>...]  Runners to filter and limit targets by, match against the `runners` field in targets.toml
       --none                    try no targets, only `--tests` jobs
   -v, --verbose                 pass `-v` to `xtask build-docker-image`
   -c, --cross-debug             sets `CROSS_DEBUG=true`
