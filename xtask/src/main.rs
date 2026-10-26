@@ -8,6 +8,7 @@ pub mod crosstool;
 pub mod hooks;
 pub mod install_git_hooks;
 pub mod target_info;
+pub mod target_test;
 pub mod util;
 
 use ci::CiJob;
@@ -23,6 +24,7 @@ use self::crosstool::ConfigureCrosstool;
 use self::hooks::{Check, Test};
 use self::install_git_hooks::InstallGitHooks;
 use self::target_info::TargetInfo;
+use self::target_test::TargetTest;
 
 #[derive(Parser, Debug)]
 #[clap(version, about, long_about = None)]
@@ -62,6 +64,8 @@ enum Commands {
     Check(Check),
     /// Run unittest suite.
     Test(Test),
+    /// Run the integration tests for a target, like CI does.
+    TargetTest(TargetTest),
     /// CI tasks
     #[clap(subcommand, hide = true)]
     CiJob(CiJob),
@@ -108,6 +112,9 @@ pub fn main() -> cross::Result<()> {
         }
         Commands::Test(args) => {
             hooks::test(args, cli.toolchain.as_deref(), &mut msg_info)?;
+        }
+        Commands::TargetTest(args) => {
+            target_test::target_test(args, cli.toolchain.as_deref(), &mut msg_info)?;
         }
         Commands::CiJob(args) => {
             let metadata = cargo_metadata(&mut Verbosity::Verbose(2).into())?;
