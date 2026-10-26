@@ -1,4 +1,6 @@
 mod target_matrix;
+#[cfg(test)]
+mod test;
 
 use crate::util::gha_output;
 use clap::Subcommand;

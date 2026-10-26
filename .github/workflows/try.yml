@@ -45,6 +45,7 @@ jobs:
     if: always() && needs.try.result != 'skipped'
     runs-on: ubuntu-latest
     steps:
+      # NOTE: PR can't change try.jq since we checkout in issue_comment context
       - uses: actions/checkout@v3
       - name: Minimize existing comments
         run: |
@@ -55,31 +56,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         continue-on-error: true
-      # comment on the PR with the result and links to the logs using gh cli
-      # Something like `### Try build: [{result}]({link_to_logs})`
-      # the url to the logs are on jobs[name="try"].url gathered with `gh run view ${{ github.run_id }} --json jobs`
       - name: Comment on PR
         run: |
-          PR_ID=${{ github.event.issue.number }}
-          gh run view ${{ github.run_id }} --json jobs |\
-          jq -r --arg pr_id "$PR_ID" --arg comment "${{ github.event.comment.html_url }}" '
-          def box: .conclusion | if . == "success" then "✔️ " elif . == "skipped" then "🛇 " else "❌ " end;
-          def reason: if .conclusion == "failure" and (.steps | length > 0) then .steps[] | select(.conclusion == "failure") | .name else "" end;
-          def job_to_md: . | "- [\(.name)](\(.url)?pr=\($pr_id)\(.conclusion | if . == "success" then "#step:10:1)" else "#)" end) - \(box) \(reason)";
-          def wrap_if_needed:
-            (.[0].conclusion | if . == "success" then "#### Successful Jobs\n\n" else "#### Failed Jobs\n\n" end) +
-            if length > 10 then
-              "<details>\n<summary>List</summary>\n\n\(map(job_to_md) | join("\n"))\n\n</details>\n"
-            else
-              map(job_to_md) | join("\n") + "\n"
-            end;
-          "<!--try-conclusion-comment-->\n## [Try](\(.jobs[] | select(.name == "try / generate-matrix") | .url + "#step:4:18")) run for [comment](\($comment))\n\n" +
-          "\(.jobs[] | select(.name == "try / conclusion") | job_to_md)\n\n" +
-          ([.jobs[] | select(.name | startswith("try / target")) | select(.name | contains("matrix.pretty") | not ) | . as $job |
-          {conclusion: $job.conclusion, name: ($job.name | capture("\\((?<name>[^,]+),.*") | .name), url: $job.url, steps: $job.steps } ] |
-          group_by(if .conclusion == "success" then "success" else "failure" end) |
-          map(wrap_if_needed) |
-          join("\n"))' |\
-          gh pr comment "$PR_ID" --body "$(< /dev/stdin)"
+          gh run view "$RUN_ID" --json jobs |
+          jq -r -f .github/workflows/try.jq \
+            --arg pr_id "$PR_ID" \
+            --arg comment "$COMMENT_URL" > "$RUNNER_TEMP/comment.md"
+          gh pr comment "$PR_ID" --body-file "$RUNNER_TEMP/comment.md"
         env:
           GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+          PR_ID: ${{ github.event.issue.number }}
+          COMMENT_URL: ${{ github.event.comment.html_url }}

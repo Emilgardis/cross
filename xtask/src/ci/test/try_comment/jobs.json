@@ -1,0 +1,401 @@
+{
+  "jobs": [
+    {
+      "name": "acknowledge",
+      "conclusion": "success",
+      "databaseId": 100,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/100",
+      "steps": []
+    },
+    {
+      "name": "try / generate-matrix",
+      "conclusion": "success",
+      "databaseId": 101,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/101",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run actions/checkout@v3",
+          "conclusion": "success",
+          "number": 2
+        },
+        {
+          "name": "Run ./.github/actions/setup-rust",
+          "conclusion": "success",
+          "number": 3
+        },
+        {
+          "name": "Generate matrix",
+          "conclusion": "success",
+          "number": 4
+        }
+      ]
+    },
+    {
+      "name": "try / clippy (ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 102,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/102",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success",
+          "number": 1
+        },
+        {
+          "name": "Run clippy",
+          "conclusion": "failure",
+          "number": 4
+        }
+      ]
+    },
+    {
+      "name": "try / test (ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 103,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/103",
+      "steps": [
+        {
+          "name": "Run unit tests",
+          "conclusion": "success",
+          "number": 5
+        }
+      ]
+    },
+    {
+      "name": "try / target (${{ matrix.pretty }},${{ matrix.os }})",
+      "conclusion": "skipped",
+      "databaseId": 104,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/104",
+      "steps": []
+    },
+    {
+      "name": "try / target (thumbv6m-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 110,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/110",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        },
+        {
+          "name": "Test Zig Image",
+          "conclusion": "skipped",
+          "number": 14
+        }
+      ]
+    },
+    {
+      "name": "try / target (thumbv7m-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 111,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/111",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (thumbv7em-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 117,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/117",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (thumbv7em-none-eabihf,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 118,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/118",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (thumbv8m.base-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 119,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/119",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (thumbv8m.main-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 122,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/122",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (x86_64-unknown-freebsd,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 112,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/112",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (i686-unknown-freebsd,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 113,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/113",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (x86_64-unknown-netbsd,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 114,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/114",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (zig,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 115,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/115",
+      "steps": [
+        {
+          "name": "Test Zig Image",
+          "conclusion": "failure",
+          "number": 14
+        }
+      ]
+    },
+    {
+      "name": "try / target (s390x-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "cancelled",
+      "databaseId": 116,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/116",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "cancelled",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (aarch64-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 120,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/120",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        },
+        {
+          "name": "Test Zig Image",
+          "conclusion": "skipped",
+          "number": 14
+        }
+      ]
+    },
+    {
+      "name": "try / target (x86_64-apple-darwin,macos-latest)",
+      "conclusion": "success",
+      "databaseId": 121,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/121",
+      "steps": [
+        {
+          "name": "Build xtask",
+          "conclusion": "success",
+          "number": 4
+        }
+      ]
+    },
+    {
+      "name": "try / target (armv7-unknown-linux-gnueabihf,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 140,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/140",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (i686-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 141,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/141",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (mips-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 142,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/142",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (powerpc64le-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 143,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/143",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (riscv64gc-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 144,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/144",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (x86_64-unknown-linux-musl,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 145,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/145",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (aarch64-linux-android,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 146,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/146",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (x86_64-pc-windows-gnu,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 147,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/147",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / target (wasm32-unknown-emscripten,ubuntu-latest)",
+      "conclusion": "success",
+      "databaseId": 148,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/148",
+      "steps": [
+        {
+          "name": "Test Image",
+          "conclusion": "success",
+          "number": 12
+        }
+      ]
+    },
+    {
+      "name": "try / conclusion",
+      "conclusion": "failure",
+      "databaseId": 130,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/130",
+      "steps": [
+        {
+          "name": "Result",
+          "conclusion": "failure",
+          "number": 2
+        }
+      ]
+    }
+  ]
+}
