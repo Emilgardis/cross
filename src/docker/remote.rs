@@ -595,8 +595,7 @@ fn is_intermediate_artifact(path: &str) -> bool {
 /// must be captured silently instead of being printed to the user's stdout.
 fn is_cargo_json_message(line: &str) -> bool {
     serde_json::from_str::<serde_json::Value>(line.trim())
-        .map(|value| value.get("reason").is_some())
-        .unwrap_or(false)
+        .is_ok_and(|value| value.get("reason").is_some())
 }
 
 fn parse_artifact_filenames(json_output: &str) -> Vec<String> {

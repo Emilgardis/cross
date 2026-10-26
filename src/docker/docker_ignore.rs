@@ -221,9 +221,7 @@ impl DockerIgnore {
                     could_match_child = true;
                     break;
                 }
-                let matches = glob::Pattern::new(pat_parts[i])
-                    .map(|p| p.matches(dir_part))
-                    .unwrap_or(false);
+                let matches = glob::Pattern::new(pat_parts[i]).is_ok_and(|p| p.matches(dir_part));
                 if !matches {
                     could_match_child = false;
                     break;
