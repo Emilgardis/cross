@@ -132,28 +132,38 @@ pub fn cargo_metadata_with_args(
     args: Option<&Args>,
     msg_info: &mut MessageInfo,
 ) -> Result<Option<CargoMetadata>> {
-    let mut command = cargo_command();
-    if let Some(channel) = args.and_then(|x| x.channel.as_deref()) {
-        command.arg(format!("+{channel}"));
-    }
-    command.arg("metadata").args(["--format-version", "1"]);
-    if let Some(cd) = cd {
-        command.current_dir(cd);
-    }
-    if let Some(config) = args {
-        if let Some(ref manifest_path) = config.manifest_path {
-            command.args(["--manifest-path".as_ref(), manifest_path.as_os_str()]);
+    let metadata_command = |host_toolchain: bool| {
+        let mut command = cargo_command();
+        if host_toolchain {
+            crate::rustc::host_toolchain(&mut command);
+        } else if let Some(channel) = args.and_then(|x| x.channel.as_deref()) {
+            command.arg(format!("+{channel}"));
         }
-    } else {
-        command.arg("--no-deps");
+        command.arg("metadata").args(["--format-version", "1"]);
+        if let Some(cd) = cd {
+            command.current_dir(cd);
+        }
+        if let Some(config) = args {
+            if let Some(ref manifest_path) = config.manifest_path {
+                command.args(["--manifest-path".as_ref(), manifest_path.as_os_str()]);
+            }
+        } else {
+            command.arg("--no-deps");
+        }
+        if let Some(target) = args.and_then(|a| a.target.as_ref()) {
+            command.args(["--filter-platform", target.triple()]);
+        }
+        if let Some(features) = args.map(|a| &a.features).filter(|v| !v.is_empty()) {
+            command.args([String::from("--features"), features.join(",")]);
+        }
+        command
+    };
+    let mut output = metadata_command(false).run_and_get_output(msg_info)?;
+    // a custom toolchain may not run on the host, see `host_toolchain`. it's tried first,
+    // since a newer cargo can write a lockfile the custom toolchain can't read
+    if !output.status.success() && crate::config::Config::new(None).custom_toolchain() {
+        output = metadata_command(true).run_and_get_output(msg_info)?;
     }
-    if let Some(target) = args.and_then(|a| a.target.as_ref()) {
-        command.args(["--filter-platform", target.triple()]);
-    }
-    if let Some(features) = args.map(|a| &a.features).filter(|v| !v.is_empty()) {
-        command.args([String::from("--features"), features.join(",")]);
-    }
-    let output = command.run_and_get_output(msg_info)?;
     if !output.status.success() {
         msg_info.warn("unable to get metadata for package")?;
         let indented = shell::indent(&String::from_utf8(output.stderr)?, shell::default_ident());

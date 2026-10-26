@@ -481,7 +481,13 @@ fn warn_on_failure(
 ) -> Result<()> {
     let rust_std = format!("rust-std-{target}");
     if target.is_builtin() {
-        let component = rustup::check_component(&rust_std, toolchain, msg_info)?;
+        let component =
+            if let Ok(component) = rustup::check_component(&rust_std, toolchain, msg_info) {
+                component
+            } else {
+                msg_info.warn("could not check rust-std component availability")?;
+                return Ok(());
+            };
         if component.is_not_available() {
             msg_info.warn(format_args!("rust-std is not available for {target}"))?;
             msg_info.note(
@@ -800,7 +806,12 @@ pub fn setup(
     let mut toolchain = if let Some(channel) = &args.channel {
         let picked_toolchain: Toolchain = channel.parse()?;
 
-        if let Some(picked_host) = &picked_toolchain.host {
+        // custom toolchains are used as named, e.g. `bisector-nightly-2022-07-01-x86_64-unknown-linux-gnu`
+        if let Some(picked_host) = picked_toolchain
+            .host
+            .as_ref()
+            .filter(|_| !config.custom_toolchain())
+        {
             return Err(eyre::eyre!("the specified toolchain `{picked_toolchain}` can't be used"))
                 .with_suggestion(|| {
                     format!(
@@ -812,7 +823,7 @@ pub fn setup(
 To override the toolchain mounted in the image, set `target.{target}.image.toolchain = "{picked_host}"`"#).header("Note:".bright_cyan()));
         }
 
-        default_toolchain.with_picked(picked_toolchain)?
+        default_toolchain.with_picked(picked_toolchain, &config, msg_info)?
     } else {
         default_toolchain
     };

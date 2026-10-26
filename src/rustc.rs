@@ -132,9 +132,12 @@ impl QualifiedToolchain {
         config: &crate::config::Config,
         msg_info: &mut MessageInfo,
     ) -> Result<QualifiedToolchain> {
+        let mut sysroot = sysroot.to_owned();
+        sysroot.set_file_name(name);
+
         if let Some(compat) = config.custom_toolchain_compat() {
             let mut toolchain: QualifiedToolchain = QualifiedToolchain::parse(
-                sysroot.to_owned(),
+                sysroot.clone(),
                 &compat,
                 config,
                 msg_info,
@@ -144,16 +147,18 @@ impl QualifiedToolchain {
             )?;
             toolchain.is_custom = true;
             toolchain.full = name.to_owned();
+            toolchain.sysroot = sysroot;
             return Ok(toolchain);
         }
         // a toolchain installed by https://github.com/rust-lang/cargo-bisect-rustc
         if name.starts_with("bisector-nightly") {
             let (_, toolchain) = name.split_once('-').expect("should include -");
             let mut toolchain =
-                QualifiedToolchain::parse(sysroot.to_owned(), toolchain, config, msg_info)
+                QualifiedToolchain::parse(sysroot.clone(), toolchain, config, msg_info)
                     .wrap_err("could not parse bisector toolchain")?;
             toolchain.is_custom = true;
             toolchain.full = name.to_owned();
+            toolchain.sysroot = sysroot;
             return Ok(toolchain);
         } else if let Ok(stdout) = Command::new(sysroot.join("bin/rustc"))
             .arg("-Vv")
@@ -174,10 +179,10 @@ impl QualifiedToolchain {
                 },
                 &build_date,
                 &ImagePlatform::from_target(host.into())?,
-                sysroot,
+                &sysroot,
                 true,
             );
-            toolchain.full = name.to_owned();
+            name.clone_into(&mut toolchain.full);
             return Ok(toolchain);
         }
         Err(eyre::eyre!(
@@ -207,7 +212,11 @@ impl QualifiedToolchain {
         if !config.custom_toolchain() {
             QualifiedToolchain::parse(sysroot.clone(), default_toolchain_name, config, msg_info)
         } else {
-            QualifiedToolchain::custom(default_toolchain_name, &sysroot, config, msg_info)
+            // `sysroot` is of the default toolchain, see `host_toolchain`, the custom one can be
+            // picked with `RUSTUP_TOOLCHAIN`, e.g. by cargo-bisect-rustc
+            let name = std::env::var("RUSTUP_TOOLCHAIN");
+            let name = name.as_deref().unwrap_or(default_toolchain_name);
+            QualifiedToolchain::custom(name, &sysroot, config, msg_info)
         }
     }
 
@@ -216,7 +225,16 @@ impl QualifiedToolchain {
     /// # Errors
     ///
     /// Returns an error if the host platform cannot be determined.
-    pub fn with_picked(self, picked: Toolchain) -> Result<Self> {
+    pub fn with_picked(
+        self,
+        picked: Toolchain,
+        config: &crate::config::Config,
+        msg_info: &mut MessageInfo,
+    ) -> Result<Self> {
+        if self.is_custom {
+            // the picked name is the custom toolchain, not a channel with optional date and host
+            return QualifiedToolchain::custom(&picked.full, &self.sysroot, config, msg_info);
+        }
         // Only nightly channel supports dated releases
         let date = if picked.channel.starts_with("nightly") {
             picked.date.or(self.date)
@@ -226,9 +244,13 @@ impl QualifiedToolchain {
         let host = picked
             .host
             .map_or(Ok(self.host), ImagePlatform::from_target)?;
-        let channel = picked.channel;
-
-        Ok(Self::new(&channel, &date, &host, &self.sysroot, false))
+        Ok(Self::new(
+            &picked.channel,
+            &date,
+            &host,
+            &self.sysroot,
+            false,
+        ))
     }
 
     pub fn set_sysroot(&mut self, convert: impl Fn(&Path) -> PathBuf) {
@@ -352,9 +374,22 @@ impl std::str::FromStr for Toolchain {
     }
 }
 
+/// Runs `command` with the default toolchain of the host if a custom toolchain is used.
+///
+/// A custom toolchain is mounted in the container and may not run on the host, e.g. a
+/// linux toolchain from cargo-bisect-rustc on windows, which it picks with `RUSTUP_TOOLCHAIN`.
+pub(crate) fn host_toolchain(command: &mut Command) -> &mut Command {
+    if crate::config::Config::new(None).custom_toolchain() {
+        command.env_remove("RUSTUP_TOOLCHAIN");
+    }
+    command
+}
+
 #[must_use]
 pub fn rustc_command() -> Command {
-    Command::new(env_program("RUSTC", "rustc"))
+    let mut command = Command::new(env_program("RUSTC", "rustc"));
+    host_toolchain(&mut command);
+    command
 }
 
 pub fn target_list(msg_info: &mut MessageInfo) -> Result<TargetList> {
@@ -376,7 +411,11 @@ pub fn sysroot(msg_info: &mut MessageInfo) -> Result<PathBuf> {
 }
 
 pub fn version_meta() -> Result<rustc_version::VersionMeta> {
-    rustc_version::version_meta().wrap_err("couldn't fetch the `rustc` version")
+    let stdout = rustc_command()
+        .arg("-vV")
+        .run_and_get_stdout(&mut crate::shell::Verbosity::Quiet.into())
+        .wrap_err("couldn't fetch the `rustc` version")?;
+    rustc_version::version_meta_for(&stdout).wrap_err("couldn't parse the `rustc` version")
 }
 
 #[cfg(test)]
@@ -417,7 +456,13 @@ mod tests {
         );
 
         let picked: Toolchain = "stable".parse().unwrap();
-        let result = base.with_picked(picked).unwrap();
+        let result = base
+            .with_picked(
+                picked,
+                &crate::config::Config::new(None),
+                &mut MessageInfo::default(),
+            )
+            .unwrap();
 
         assert_eq!(result.channel, "stable");
         assert_eq!(result.date, None);
@@ -434,10 +479,46 @@ mod tests {
         );
 
         let picked: Toolchain = "beta".parse().unwrap();
-        let result = base.with_picked(picked).unwrap();
+        let result = base
+            .with_picked(
+                picked,
+                &crate::config::Config::new(None),
+                &mut MessageInfo::default(),
+            )
+            .unwrap();
 
         assert_eq!(result.channel, "beta");
         assert_eq!(result.date, None);
+    }
+
+    #[test]
+    fn with_picked_custom_uses_picked() {
+        let mut msg_info = MessageInfo::default();
+        let config = crate::config::Config::new(None);
+        let base = QualifiedToolchain::custom(
+            "bisector-nightly-2024-01-01-x86_64-unknown-linux-gnu",
+            Path::new("/rustup/toolchains/nightly-x86_64-unknown-linux-gnu"),
+            &config,
+            &mut msg_info,
+        )
+        .unwrap();
+        assert!(base.is_custom);
+
+        let picked: Toolchain = "bisector-nightly-2022-07-01-x86_64-unknown-linux-gnu"
+            .parse()
+            .unwrap();
+        let result = base.with_picked(picked, &config, &mut msg_info).unwrap();
+
+        assert!(result.is_custom);
+        assert_eq!(
+            result.full,
+            "bisector-nightly-2022-07-01-x86_64-unknown-linux-gnu"
+        );
+        assert_eq!(
+            result.get_sysroot(),
+            Path::new("/rustup/toolchains/bisector-nightly-2022-07-01-x86_64-unknown-linux-gnu")
+        );
+        assert_eq!(result.date.as_deref(), Some("2022-07-01"));
     }
 
     #[test]
@@ -451,7 +532,13 @@ mod tests {
         );
 
         let picked: Toolchain = "nightly-2024-08-02".parse().unwrap();
-        let result = base.with_picked(picked).unwrap();
+        let result = base
+            .with_picked(
+                picked,
+                &crate::config::Config::new(None),
+                &mut MessageInfo::default(),
+            )
+            .unwrap();
 
         assert_eq!(result.channel, "nightly");
         assert_eq!(result.date, Some("2024-08-02".to_owned()));
