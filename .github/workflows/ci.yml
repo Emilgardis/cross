@@ -9,6 +9,10 @@ on:
         required: false
         type: string
         description: Comment body for `cargo xtask ci-job target-matrix try`
+      weekly-targets:
+        required: false
+        type: string
+        description: Targets for `cargo xtask ci-job target-matrix --weekly`
       checkout-ref:
         required: false
         type: string
@@ -135,6 +139,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TRY_COMMENT: ${{ inputs.try-comment }}
+          TARGETS: ${{ inputs.weekly-targets }}
 
   build:
     name: target (${{ matrix.pretty }},${{ matrix.os }})
