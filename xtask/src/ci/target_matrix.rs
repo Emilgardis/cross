@@ -26,7 +26,7 @@ pub enum TargetMatrixSub {
         #[clap(long)]
         pr: String,
         /// comment to check
-        #[clap(long)]
+        #[clap(long, env = "TRY_COMMENT")]
         comment: String,
     },
 }
@@ -225,21 +225,38 @@ fn current_pr() -> Option<String> {
     pr_info.get("number").map(|n| n.to_string())
 }
 
+/// Returns the arguments of the first `/ci try` command in a comment.
+///
+/// Keep in sync with the check in `.github/workflows/try.yml`.
+fn find_try_command(message: &str) -> Option<&str> {
+    message.lines().find_map(|line| {
+        let line = line.trim_end();
+        let unticked = line.trim_start_matches('`');
+        let command = unticked.strip_prefix("/ci try")?;
+        if !(command.is_empty() || command.starts_with([' ', '\t', '`'])) {
+            return None;
+        }
+        if unticked.len() != line.len() {
+            // inline code, `/ci try ...`
+            Some(command.split('`').next().unwrap_or_default().trim())
+        } else {
+            Some(command.trim())
+        }
+    })
+}
+
 /// Returns app to use for matrix on try comment, boolean is used to determine if its a try without arguments
 fn process_try_comment(message: &str) -> cross::Result<(bool, TargetMatrixArgs)> {
-    for line in message.lines() {
-        let command = if let Some(command) = line.strip_prefix("/ci try") {
-            command.trim()
-        } else {
-            continue;
-        };
-        if command.is_empty() {
-            return Ok((true, TargetMatrixArgs::default()));
-        } else {
-            return Ok((false, TargetMatrixArgs::parse_from(command.split(' '))));
-        }
+    let command = find_try_command(message)
+        .ok_or_else(|| eyre::eyre!("no /ci try command found in comment"))?;
+    if command.is_empty() {
+        Ok((true, TargetMatrixArgs::default()))
+    } else {
+        Ok((
+            false,
+            TargetMatrixArgs::try_parse_from(shell_words::split(command)?)?,
+        ))
     }
-    eyre::bail!("no /ci try command found in comment")
 }
 
 #[derive(Serialize)]
@@ -493,6 +510,44 @@ mod tests {
     fn none() {
         let matrix = run(["--none"]);
         assert_eq!(&Vec::<CiTarget>::new(), &matrix);
+    }
+
+    #[test]
+    fn try_command() {
+        for (comment, expected) in [
+            ("/ci try", Some("")),
+            ("/ci try -t *-musl*", Some("-t *-musl*")),
+            ("/ci try -t *-musl*\r\n\r\nmore text", Some("-t *-musl*")),
+            (
+                "hello\n\n/ci try --target x  -t y \nbye",
+                Some("--target x  -t y"),
+            ),
+            ("`/ci try -t *-musl*`", Some("-t *-musl*")),
+            ("`/ci try -t *-musl*` and some text", Some("-t *-musl*")),
+            ("`/ci try`", Some("")),
+            ("```\n/ci try -t *-musl*\n```", Some("-t *-musl*")),
+            ("```sh\r\n/ci try -t *-musl*\r\n```", Some("-t *-musl*")),
+            // ignored
+            ("/ci tryhard", None),
+            ("run `/ci try -t foo` to try", None),
+            ("\\/ci try -t foo", None),
+            ("> /ci try -t foo", None),
+            ("    /ci try -t foo", None),
+            ("~~/ci try~~", None),
+        ] {
+            assert_eq!(find_try_command(comment), expected, "{comment:?}");
+        }
+    }
+
+    #[test]
+    fn try_comment_args() {
+        let (default, args) = process_try_comment("`/ci try -t *-musl*  --cpp 1`").unwrap();
+        assert!(!default);
+        assert_eq!(args.target, ["*-musl*"]);
+        assert_eq!(args.cpp, Some(true));
+        assert!(process_try_comment("/ci try").unwrap().0);
+        assert!(process_try_comment("/ci try --nope").is_err());
+        assert!(process_try_comment("nothing here").is_err());
     }
 
     #[test]

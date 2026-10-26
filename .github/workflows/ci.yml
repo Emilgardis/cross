@@ -5,6 +5,10 @@ on:
         required: false
         type: string
         description: Arguments to pass to `cargo xtask ci-job target-matrix`
+      try-comment:
+        required: false
+        type: string
+        description: Comment body for `cargo xtask ci-job target-matrix try`
       checkout-ref:
         required: false
         type: string
@@ -125,6 +129,7 @@ jobs:
         run: cargo xtask ci-job target-matrix ${{ github.event_name == 'merge_group' && format('--merge-group {0}', github.ref) || '' }} ${{ inputs.matrix-args || '' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          TRY_COMMENT: ${{ inputs.try-comment }}
 
   build:
     name: target (${{ matrix.pretty }},${{ matrix.os }})

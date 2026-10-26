@@ -3,9 +3,25 @@ on:
   issue_comment:
     types: [created]
 jobs:
+  check-command:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER') && contains(github.event.comment.body, '/ci try')
+    outputs:
+      try: ${{ steps.check.outputs.try }}
+    steps:
+      # keep in sync with `find_try_command` in xtask/src/ci/target_matrix.rs
+      - name: Check for command
+        id: check
+        run: |
+          if grep -qE '^`*/ci try([[:space:]`]|$)' <<< "${COMMENT_BODY//$'\r'/}"; then
+            echo "try=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
   acknowledge:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER') && (contains(toJson(github.event.comment.body), '\n/ci try') || startsWith(github.event.comment.body, '/ci try'))
+    needs: check-command
+    if: needs.check-command.outputs.try == 'true'
     steps:
       - uses: actions/checkout@v3
       - name: Acknowledge command
@@ -17,10 +33,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         continue-on-error: true
   try:
-    if: github.event.issue.pull_request && (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER') && (contains(toJson(github.event.comment.body), '\n/ci try') || startsWith(github.event.comment.body, '/ci try'))
+    needs: check-command
+    if: needs.check-command.outputs.try == 'true'
     uses: ./.github/workflows/ci.yml
     with:
-      matrix-args: try --comment "${{ github.event.comment.body }}" --pr ${{ github.event.issue.number }}
+      matrix-args: try --pr ${{ github.event.issue.number }}
+      try-comment: ${{ github.event.comment.body }}
       checkout-ref: refs/pull/${{ github.event.issue.number }}/head
   comment:
     needs: [try, acknowledge]
