@@ -33,3 +33,5 @@ ENV QEMU_CPU=cortex-m1 \
     CROSS_CMAKE_SYSTEM_PROCESSOR=armv6-m \
     CROSS_CMAKE_CRT=newlib \
     CROSS_CMAKE_OBJECT_FLAGS="-ffunction-sections -fdata-sections -mthumb -march=armv6s-m"
+
+RUN false # bogus: break the image build
