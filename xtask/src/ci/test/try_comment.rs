@@ -8,9 +8,13 @@ use std::process::Command;
 use crate::util::get_cargo_workspace;
 
 #[track_caller]
-fn check(jobs: &str, try_error: &str, expected: &str) {
+fn check(jobs: &str, annotations: Option<&str>, try_error: &str, expected: &str) {
     let workspace = get_cargo_workspace();
     let dir = workspace.join("xtask/src/ci/test/try_comment");
+    let annotations = annotations.map_or_else(
+        || "{}".to_owned(),
+        |a| std::fs::read_to_string(dir.join(a)).unwrap(),
+    );
     let output = Command::new("jq")
         .args(["-r", "-f"])
         .arg(workspace.join(".github/workflows/try.jq"))
@@ -21,6 +25,7 @@ fn check(jobs: &str, try_error: &str, expected: &str) {
             "https://github.com/cross-rs/cross/pull/1337#issuecomment-1",
         ])
         .args(["--arg", "try_error", try_error])
+        .args(["--argjson", "annotations", &annotations])
         .arg(dir.join(jobs))
         .output()
         .expect("jq should be installed");
@@ -51,12 +56,12 @@ fn compare(expected_path: &Path, actual: &str) {
 
 #[test]
 fn try_comment() {
-    check("jobs.json", "", "expected.md");
+    check("jobs.json", Some("annotations.json"), "", "expected.md");
 }
 
 #[test]
 fn try_comment_invalid_command() {
     let err = eyre::eyre!("no targets matched `i686-linux`");
     let try_error = super::super::target_matrix::try_error(&err).to_string();
-    check("jobs-invalid.json", &try_error, "expected-invalid.md");
+    check("jobs-invalid.json", None, &try_error, "expected-invalid.md");
 }

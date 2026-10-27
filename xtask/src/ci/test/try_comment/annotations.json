@@ -1,0 +1,114 @@
+{
+  "110": [
+    {
+      "title": "thumbv6m-none-eabi build bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target thumbv6m-none-eabi -v` failed with exit status: 101\nerror: linking with `false` failed: exit status: 1\n  |\n  = note:  \"false\" \"/target/thumbv6m-none-eabi/debug/deps/rustcaxJST5/symbols.o\" \"<2 object files omitted>\" \"-Wl,--as-needed\" \"-Wl,-Bstatic\" \"<sysroot>/lib/rustlib/thumbv6m-none-eabi/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"-Wl,-Bdynamic\" \"-lgcc_s\" \"-lutil\" \"-lrt\" \"-lpthread\" \"-lm\" \"-ldl\" \"-lc\" \"-L\" \"/target/thumbv6m-none-eabi/debug/deps/rustcaxJST5/raw-dylibs\" \"-B<sysroot>/lib/rustlib/thumbv6m-none-eabi/bin/gcc-ld\" \"-fuse-ld=lld\" \"-Wl,--eh-frame-hdr\" \"-Wl,-z,noexecstack\" \"-L\" \"<sysroot>/lib/rustlib/thumbv6m-none-eabi/lib\" \"-o\" \"/target/thumbv6m-none-eabi/debug/deps/hello-1d45f7d235b86109\" \"-Wl,--gc-sections\" \"-pie\" \"-Wl,-z,relro,-z,now\" \"-nodefaultlibs\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: \n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error\n\nCaused by:\n  process didn't exit successfully: `rustc --crate-name hello --edition=2024 tmp.18e2297e57e58100/src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=df7d52698b80b616 -C extra-filename=-1d45f7d235b86109 --out-dir /target/thumbv6m-none-eabi/debug/deps --target thumbv6m-none-eabi -C linker=false -L dependency=/target/thumbv6m-none-eabi/debug/deps -L dependency=/target/debug/deps` (exit status: 1)",
+      "annotation_level": "failure"
+    }
+  ],
+  "111": [
+    {
+      "title": "thumbv7m-none-eabi build bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target thumbv7m-none-eabi -v` failed with exit status: 101\nerror: linking with `false` failed: exit status: 1\n  |\n  = note:  \"false\" \"/target/thumbv7m-none-eabi/debug/deps/rustcaxJST5/symbols.o\" \"<2 object files omitted>\" \"-Wl,--as-needed\" \"-Wl,-Bstatic\" \"<sysroot>/lib/rustlib/thumbv7m-none-eabi/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"-Wl,-Bdynamic\" \"-lgcc_s\" \"-lutil\" \"-lrt\" \"-lpthread\" \"-lm\" \"-ldl\" \"-lc\" \"-L\" \"/target/thumbv7m-none-eabi/debug/deps/rustcaxJST5/raw-dylibs\" \"-B<sysroot>/lib/rustlib/thumbv7m-none-eabi/bin/gcc-ld\" \"-fuse-ld=lld\" \"-Wl,--eh-frame-hdr\" \"-Wl,-z,noexecstack\" \"-L\" \"<sysroot>/lib/rustlib/thumbv7m-none-eabi/lib\" \"-o\" \"/target/thumbv7m-none-eabi/debug/deps/hello-1d45f7d235b86109\" \"-Wl,--gc-sections\" \"-pie\" \"-Wl,-z,relro,-z,now\" \"-nodefaultlibs\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: \n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error\n\nCaused by:\n  process didn't exit successfully: `rustc --crate-name hello --edition=2024 tmp.18e2297e57e58100/src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=df7d52698b80b616 -C extra-filename=-1d45f7d235b86109 --out-dir /target/thumbv7m-none-eabi/debug/deps --target thumbv7m-none-eabi -C linker=false -L dependency=/target/thumbv7m-none-eabi/debug/deps -L dependency=/target/debug/deps` (exit status: 1)",
+      "annotation_level": "failure"
+    }
+  ],
+  "117": [
+    {
+      "title": "thumbv7em-none-eabi build bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target thumbv7em-none-eabi -v` failed with exit status: 101\nerror: linking with `false` failed: exit status: 1\n  |\n  = note:  \"false\" \"/target/thumbv7em-none-eabi/debug/deps/rustcaxJST5/symbols.o\" \"<2 object files omitted>\" \"-Wl,--as-needed\" \"-Wl,-Bstatic\" \"<sysroot>/lib/rustlib/thumbv7em-none-eabi/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"-Wl,-Bdynamic\" \"-lgcc_s\" \"-lutil\" \"-lrt\" \"-lpthread\" \"-lm\" \"-ldl\" \"-lc\" \"-L\" \"/target/thumbv7em-none-eabi/debug/deps/rustcaxJST5/raw-dylibs\" \"-B<sysroot>/lib/rustlib/thumbv7em-none-eabi/bin/gcc-ld\" \"-fuse-ld=lld\" \"-Wl,--eh-frame-hdr\" \"-Wl,-z,noexecstack\" \"-L\" \"<sysroot>/lib/rustlib/thumbv7em-none-eabi/lib\" \"-o\" \"/target/thumbv7em-none-eabi/debug/deps/hello-1d45f7d235b86109\" \"-Wl,--gc-sections\" \"-pie\" \"-Wl,-z,relro,-z,now\" \"-nodefaultlibs\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: \n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error\n\nCaused by:\n  process didn't exit successfully: `rustc --crate-name hello --edition=2024 tmp.18e2297e57e58100/src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=df7d52698b80b616 -C extra-filename=-1d45f7d235b86109 --out-dir /target/thumbv7em-none-eabi/debug/deps --target thumbv7em-none-eabi -C linker=false -L dependency=/target/thumbv7em-none-eabi/debug/deps -L dependency=/target/debug/deps` (exit status: 1)",
+      "annotation_level": "failure"
+    }
+  ],
+  "118": [
+    {
+      "title": "thumbv7em-none-eabihf build bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target thumbv7em-none-eabihf -v` failed with exit status: 101\nerror: linking with `false` failed: exit status: 1\n  |\n  = note:  \"false\" \"/target/thumbv7em-none-eabihf/debug/deps/rustcaxJST5/symbols.o\" \"<2 object files omitted>\" \"-Wl,--as-needed\" \"-Wl,-Bstatic\" \"<sysroot>/lib/rustlib/thumbv7em-none-eabihf/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"-Wl,-Bdynamic\" \"-lgcc_s\" \"-lutil\" \"-lrt\" \"-lpthread\" \"-lm\" \"-ldl\" \"-lc\" \"-L\" \"/target/thumbv7em-none-eabihf/debug/deps/rustcaxJST5/raw-dylibs\" \"-B<sysroot>/lib/rustlib/thumbv7em-none-eabihf/bin/gcc-ld\" \"-fuse-ld=lld\" \"-Wl,--eh-frame-hdr\" \"-Wl,-z,noexecstack\" \"-L\" \"<sysroot>/lib/rustlib/thumbv7em-none-eabihf/lib\" \"-o\" \"/target/thumbv7em-none-eabihf/debug/deps/hello-1d45f7d235b86109\" \"-Wl,--gc-sections\" \"-pie\" \"-Wl,-z,relro,-z,now\" \"-nodefaultlibs\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: \n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error\n\nCaused by:\n  process didn't exit successfully: `rustc --crate-name hello --edition=2024 tmp.18e2297e57e58100/src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=df7d52698b80b616 -C extra-filename=-1d45f7d235b86109 --out-dir /target/thumbv7em-none-eabihf/debug/deps --target thumbv7em-none-eabihf -C linker=false -L dependency=/target/thumbv7em-none-eabihf/debug/deps -L dependency=/target/debug/deps` (exit status: 1)",
+      "annotation_level": "failure"
+    }
+  ],
+  "119": [
+    {
+      "title": "thumbv8m.base-none-eabi run bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross run --target thumbv8m.base-none-eabi --example e -v` failed with exit status: 1\n       Fresh hello v0.1.0 (/home/runner/work/cross/cross/target/tmp/tmp.18e22985dc5629ba)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s\n     Running `/native-linux-runner /target/thumbv8m.base-none-eabi/debug/examples/e`\n/linux-runner: line 133:    27 Segmentation fault      (core dumped) ${QEMU_CMD} >> \"${LOG}\" 2>&1",
+      "annotation_level": "failure"
+    }
+  ],
+  "122": [
+    {
+      "title": "thumbv8m.main-none-eabi run bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross run --target thumbv8m.main-none-eabi --example e -v` failed with exit status: 1\n       Fresh hello v0.1.0 (/home/runner/work/cross/cross/target/tmp/tmp.18e22985dc5629ba)\n    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.04s\n     Running `/linux-runner arm /target/thumbv8m.main-none-eabi/debug/examples/e`\n/linux-runner: line 133:    27 Segmentation fault      (core dumped) ${QEMU_CMD} >> \"${LOG}\" 2>&1",
+      "annotation_level": "failure"
+    }
+  ],
+  "112": [
+    {
+      "title": "x86_64-unknown-freebsd",
+      "message": "build failed\n+ cd ..\n+ curl -4 --retry 3 -sSfL http://ftp.freebsd.org/pub/FreeBSD/releases/amd64/-RELEASE/base.txz -O\ncurl: (22) The requested URL returned error: 404\nERROR: process \"/bin/sh -c /freebsd.sh\" did not complete successfully: exit code: 22",
+      "annotation_level": "failure"
+    }
+  ],
+  "113": [
+    {
+      "title": "i686-unknown-freebsd",
+      "message": "build failed\n+ cd ..\n+ curl -4 --retry 3 -sSfL http://ftp.freebsd.org/pub/FreeBSD/releases/i386/-RELEASE/base.txz -O\ncurl: (22) The requested URL returned error: 404\nERROR: process \"/bin/sh -c /freebsd.sh\" did not complete successfully: exit code: 22",
+      "annotation_level": "failure"
+    }
+  ],
+  "114": [
+    {
+      "title": "x86_64-unknown-netbsd",
+      "message": "build failed\n+ echo 'Unable to download base.tar.xz'\nUnable to download base.tar.xz\n+ exit 1\nERROR: process \"/bin/sh -c /netbsd.sh\" did not complete successfully: exit code: 1",
+      "annotation_level": "failure"
+    }
+  ],
+  "150": [
+    {
+      "title": "armv7a-none-eabi build bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target armv7a-none-eabi -v` failed with exit status: 101\nerror: linking with `false` failed: exit status: 1\n  |\n  = note:  \"false\" \"/target/armv7a-none-eabi/debug/deps/rustcaxJST5/symbols.o\" \"<2 object files omitted>\" \"-Wl,--as-needed\" \"-Wl,-Bstatic\" \"<sysroot>/lib/rustlib/armv7a-none-eabi/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"-Wl,-Bdynamic\" \"-lgcc_s\" \"-lutil\" \"-lrt\" \"-lpthread\" \"-lm\" \"-ldl\" \"-lc\" \"-L\" \"/target/armv7a-none-eabi/debug/deps/rustcaxJST5/raw-dylibs\" \"-B<sysroot>/lib/rustlib/armv7a-none-eabi/bin/gcc-ld\" \"-fuse-ld=lld\" \"-Wl,--eh-frame-hdr\" \"-Wl,-z,noexecstack\" \"-L\" \"<sysroot>/lib/rustlib/armv7a-none-eabi/lib\" \"-o\" \"/target/armv7a-none-eabi/debug/deps/hello-1d45f7d235b86109\" \"-Wl,--gc-sections\" \"-pie\" \"-Wl,-z,relro,-z,now\" \"-nodefaultlibs\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: \n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error\n\nCaused by:\n  process didn't exit successfully: `rustc --crate-name hello --edition=2024 tmp.18e2297e57e58100/src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=df7d52698b80b616 -C extra-filename=-1d45f7d235b86109 --out-dir /target/armv7a-none-eabi/debug/deps --target armv7a-none-eabi -C linker=false -L dependency=/target/armv7a-none-eabi/debug/deps -L dependency=/target/debug/deps` (exit status: 1)",
+      "annotation_level": "failure"
+    }
+  ],
+  "151": [
+    {
+      "title": "armebv7r-none-eabi build bin",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target armebv7r-none-eabi -v` failed with exit status: 101\nerror: linking with `false` failed: exit status: 1\n  |\n  = note:  \"false\" \"/target/armebv7r-none-eabi/debug/deps/rustcaxJST5/symbols.o\" \"<2 object files omitted>\" \"-Wl,--as-needed\" \"-Wl,-Bstatic\" \"<sysroot>/lib/rustlib/armebv7r-none-eabi/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib\" \"-Wl,-Bdynamic\" \"-lgcc_s\" \"-lutil\" \"-lrt\" \"-lpthread\" \"-lm\" \"-ldl\" \"-lc\" \"-L\" \"/target/armebv7r-none-eabi/debug/deps/rustcaxJST5/raw-dylibs\" \"-B<sysroot>/lib/rustlib/armebv7r-none-eabi/bin/gcc-ld\" \"-fuse-ld=lld\" \"-Wl,--eh-frame-hdr\" \"-Wl,-z,noexecstack\" \"-L\" \"<sysroot>/lib/rustlib/armebv7r-none-eabi/lib\" \"-o\" \"/target/armebv7r-none-eabi/debug/deps/hello-1d45f7d235b86109\" \"-Wl,--gc-sections\" \"-pie\" \"-Wl,-z,relro,-z,now\" \"-nodefaultlibs\"\n  = note: some arguments are omitted. use `--verbose` to show all linker arguments\n  = note: \n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error\n\nCaused by:\n  process didn't exit successfully: `rustc --crate-name hello --edition=2024 tmp.18e2297e57e58100/src/main.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type bin --emit=dep-info,link -C embed-bitcode=no -C debuginfo=2 --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values())' -C metadata=df7d52698b80b616 -C extra-filename=-1d45f7d235b86109 --out-dir /target/armebv7r-none-eabi/debug/deps --target armebv7r-none-eabi -C linker=false -L dependency=/target/armebv7r-none-eabi/debug/deps -L dependency=/target/debug/deps` (exit status: 1)",
+      "annotation_level": "failure"
+    }
+  ],
+  "152": [
+    {
+      "title": "aarch64-unknown-freebsd",
+      "message": "build failed\n+ cd ..\n+ curl -4 --retry 3 -sSfL http://ftp.freebsd.org/pub/FreeBSD/releases/arm64/-RELEASE/base.txz -O\ncurl: (22) The requested URL returned error: 404\nERROR: process \"/bin/sh -c /freebsd.sh\" did not complete successfully: exit code: 22",
+      "annotation_level": "failure"
+    }
+  ],
+  "153": [
+    {
+      "title": "powerpc-unknown-linux-gnu",
+      "message": "build failed\n+ dpkg -x powerpc/zlib1g_1%3a1.3.dfsg+really1.3.2-4_powerpc.deb root-powerpc/\n+ cp 'root-powerpc/boot/vmlinu*' kernel\ncp: cannot stat 'root-powerpc/boot/vmlinu*': No such file or directory\nERROR: process \"/bin/sh -c /linux-image.sh powerpc\" did not complete successfully: exit code: 1",
+      "annotation_level": "failure"
+    }
+  ],
+  "154": [
+    {
+      "title": "sparc64-unknown-linux-gnu",
+      "message": "build failed\n+ dpkg -x sparc64/zlib1g_1%3a1.3.dfsg+really1.3.2-4_sparc64.deb root-sparc64/\n+ cp 'root-sparc64/boot/vmlinu*' kernel\ncp: cannot stat 'root-sparc64/boot/vmlinu*': No such file or directory\nERROR: process \"/bin/sh -c /linux-image.sh sparc64\" did not complete successfully: exit code: 1",
+      "annotation_level": "failure"
+    }
+  ],
+  "155": [
+    {
+      "title": "thumbv7neon-unknown-linux-gnueabihf build bin",
+      "annotation_level": "failure",
+      "message": "`/home/runner/work/cross/cross/target/debug/cross build --target thumbv7neon-unknown-linux-gnueabihf -v` failed with exit status: 101\nerror: linker `arm-linux-gnueabihf-gcc` not found\n  |\n  = note: No such file or directory (os error 2)\n\nerror: could not compile `hello` (bin \"hello\") due to 1 previous error"
+    }
+  ],
+  "156": [
+    {
+      "title": "zig",
+      "message": "build failed\n[build 2/2] RUN /zig.sh linux/amd64\n/bin/sh: 1: /zig.sh: Permission denied\nERROR: process \"/bin/sh -c /zig.sh $TARGETPLATFORM\" did not complete successfully: exit code: 126",
+      "annotation_level": "failure"
+    }
+  ]
+}

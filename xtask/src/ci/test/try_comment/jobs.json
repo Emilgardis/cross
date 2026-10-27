@@ -396,6 +396,127 @@
           "number": 2
         }
       ]
+    },
+    {
+      "name": "try / target (armv7a-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 150,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/150",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        },
+        {
+          "name": "Test Zig Image",
+          "conclusion": "skipped",
+          "number": 14
+        }
+      ]
+    },
+    {
+      "name": "try / target (armebv7r-none-eabi,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 151,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/151",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        },
+        {
+          "name": "Test Zig Image",
+          "conclusion": "skipped",
+          "number": 14
+        }
+      ]
+    },
+    {
+      "name": "try / target (aarch64-unknown-freebsd,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 152,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/152",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (powerpc-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 153,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/153",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (sparc64-unknown-linux-gnu,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 154,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/154",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
+    },
+    {
+      "name": "try / target (thumbv7neon-unknown-linux-gnueabihf,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 155,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/155",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "success",
+          "number": 10
+        },
+        {
+          "name": "Test Image",
+          "conclusion": "failure",
+          "number": 12
+        },
+        {
+          "name": "Test Zig Image",
+          "conclusion": "skipped",
+          "number": 14
+        }
+      ]
+    },
+    {
+      "name": "try / target (zig,ubuntu-latest)",
+      "conclusion": "failure",
+      "databaseId": 156,
+      "url": "https://github.com/cross-rs/cross/actions/runs/1/job/156",
+      "steps": [
+        {
+          "name": "Build Docker image",
+          "conclusion": "failure",
+          "number": 10
+        }
+      ]
     }
   ]
 }

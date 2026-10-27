@@ -33,6 +33,4 @@ Options:
 
 #### Failed Jobs (1)
 
-- **Generate matrix** (1): [generate-matrix](https://github.com/cross-rs/cross/actions/runs/2/job/101?pr=1337)
-
-
+- ❌ **Generate matrix** (1): [generate-matrix](https://github.com/cross-rs/cross/actions/runs/2/job/101?pr=1337)

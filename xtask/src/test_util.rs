@@ -59,7 +59,7 @@ pub fn retry(mut command: Command, msg_info: &mut MessageInfo) -> cross::Result<
 
 /// Escapes data for a GitHub workflow command, see
 /// https://github.com/actions/toolkit/blob/main/packages/core/src/command.ts
-fn gha_escape(data: &str, property: bool) -> String {
+pub fn gha_escape(data: &str, property: bool) -> String {
     let data = data
         .replace('%', "%25")
         .replace('\r', "%0D")

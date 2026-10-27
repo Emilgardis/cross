@@ -2,13 +2,14 @@ use std::fmt::Write;
 use std::path::Path;
 
 use crate::ImageTarget;
+use crate::test_util::{gha_escape, strip_ansi};
 use crate::util::{
     DEFAULT_PLATFORMS, cargo_metadata, get_matrix, gha_error, gha_output, gha_print,
 };
 use clap::Args;
 use cross::docker::{self, BuildCommandExt, BuildResultExt, ImagePlatform, Progress};
 use cross::shell::MessageInfo;
-use cross::{CommandExt, ToUtf8};
+use cross::{CommandExt, Stream, ToUtf8};
 
 #[derive(Args, Debug)]
 pub struct BuildDockerImage {
@@ -310,14 +311,30 @@ pub fn build_docker_image(
         });
 
         if !dry_run && (force || !push || gha) {
-            let result = docker_build
-                .run(msg_info, false)
-                .engine_warning(engine)
-                .buildkit_warning();
-            if gha && targets.len() > 1 {
+            let mut build_error = None;
+            let result = if gha {
+                docker_build
+                    .run_and_get_output_streamed(msg_info, Stream::Stderr, |_| true)
+                    .and_then(|(status, stderr)| {
+                        build_error = buildkit_error(&stderr);
+                        Ok(docker_build.status_result(msg_info, status, None)?)
+                    })
+            } else {
+                docker_build.run(msg_info, false)
+            }
+            .engine_warning(engine)
+            .buildkit_warning();
+            if gha {
                 if let Err(e) = &result {
-                    // TODO: Determine what instruction errored, and place warning on that line with appropriate warning
-                    gha_error(&format!("file=docker/{dockerfile},title=Build failed::{e}"));
+                    let message = match build_error {
+                        Some(build_error) => format!("build failed\n{build_error}"),
+                        None => format!("{e}"),
+                    };
+                    gha_error(&format!(
+                        "file=docker/{dockerfile},title={}::{}",
+                        gha_escape(&target.alt(), true),
+                        gha_escape(&message, false)
+                    ));
                 }
             }
             results.push(
@@ -355,6 +372,32 @@ pub fn build_docker_image(
         ));
     }
     Ok(())
+}
+
+/// The last lines of the buildkit step that failed and its error, from `--progress plain` output
+/// like `#21 103.9 cp: cannot stat ...` followed by `#21 ERROR: process ...`.
+fn buildkit_error(output: &str) -> Option<String> {
+    let lines: Vec<_> = output.lines().map(strip_ansi).collect();
+    let (id, error) = lines.iter().rev().find_map(|l| {
+        let (id, rest) = l.strip_prefix('#')?.split_once(' ')?;
+        Some((id, rest.strip_prefix("ERROR: ")?))
+    })?;
+    let prefix = format!("#{id} ");
+    let step: Vec<_> = lines
+        .iter()
+        .filter_map(|l| l.strip_prefix(&prefix))
+        .filter(|l| !l.starts_with("ERROR: "))
+        // strip the timestamp
+        .map(|l| match l.split_once(' ') {
+            Some((time, rest)) if time.parse::<f64>().is_ok() => rest,
+            _ => l,
+        })
+        .collect();
+    let mut tail = step[step.len().saturating_sub(3)..].join("\n");
+    if !tail.is_empty() {
+        tail.push('\n');
+    }
+    Some(format!("{tail}ERROR: {error}"))
 }
 
 fn has_native_image(
@@ -460,4 +503,31 @@ pub fn job_summary(
         writeln!(summary, "| {target} |")?;
     }
     Ok(summary)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn buildkit_error_lines() {
+        let output = r#"#20 12.1 other step
+#21 101.8 + dpkg -x ppc64/libc6_2.43-7_ppc64.deb root-ppc64/
+#21 103.9 + dpkg -x ppc64/zlib1g_1%3a1.3.dfsg+really1.3.2-4_ppc64.deb root-ppc64/
+#20 12.2 other step
+#21 103.9 + cp 'root-ppc64/boot/vmlinu*' kernel
+#21 103.9 cp: cannot stat 'root-ppc64/boot/vmlinu*': No such file or directory
+#21 ERROR: process "/bin/sh -c /linux-image.sh powerpc64" did not complete successfully: exit code: 1
+------
+ERROR: failed to build: failed to solve: process "/bin/sh -c /linux-image.sh powerpc64" did not complete successfully: exit code: 1
+"#;
+        assert_eq!(
+            buildkit_error(output).unwrap(),
+            r#"+ dpkg -x ppc64/zlib1g_1%3a1.3.dfsg+really1.3.2-4_ppc64.deb root-ppc64/
++ cp 'root-ppc64/boot/vmlinu*' kernel
+cp: cannot stat 'root-ppc64/boot/vmlinu*': No such file or directory
+ERROR: process "/bin/sh -c /linux-image.sh powerpc64" did not complete successfully: exit code: 1"#
+        );
+        assert_eq!(buildkit_error("#1 0.1 ok\n"), None);
+    }
 }
